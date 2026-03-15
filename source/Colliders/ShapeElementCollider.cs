@@ -1,0 +1,404 @@
+﻿using OpenTK.Mathematics;
+using Vintagestory.API.Client;
+using Vintagestory.API.Common;
+using Vintagestory.API.Common.Entities;
+using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
+using CollidersLib.VectorsUtils;
+
+namespace CollidersLib;
+
+public sealed class ShapeElementCollider
+{
+    public ShapeElementCollider(ShapeElement element, int colliderType)
+    {
+        JointId = element.JointId;
+        SetElementVertices(element);
+        ShapeElementName = element.Name ?? "";
+        ColliderType = colliderType;
+    }
+
+
+    public const int VertexCount = 8;
+    public Vector4d[] ElementVertices { get; } = new Vector4d[VertexCount];
+    public Vector4d[] InworldVertices { get; } = new Vector4d[VertexCount];
+    public int JointId { get; set; }
+    public EntityShapeRenderer? Renderer { get; set; } = null;
+    public bool HasRenderer { get; set; } = false;
+    public string ShapeElementName { get; set; }
+    public int ColliderType { get; set; }
+
+    
+    public void Transform(float[] transformMatrixAll, ICoreClientAPI api)
+    {
+        if (Renderer == null) return;
+
+        double[] transformMatrix = GetTransformMatrix(JointId, transformMatrixAll);
+
+        EntityPos playerPos = api.World.Player.Entity.Pos;
+
+        for (int vertex = 0; vertex < VertexCount; vertex++)
+        {
+            InworldVertices[vertex] = MultiplyVectorByMatrix(transformMatrix, ElementVertices[vertex]);
+            InworldVertices[vertex].W = 1.0f;
+            InworldVertices[vertex] = MultiplyVectorByMatrix(Renderer.ModelMat, InworldVertices[vertex]);
+            InworldVertices[vertex].X += playerPos.X;
+            InworldVertices[vertex].Y += playerPos.Y;
+            InworldVertices[vertex].Z += playerPos.Z;
+        }
+    }
+    public bool Collide(Vector3d segmentStart, Vector3d segmentDirection, out double parameter, out Vector3d intersection)
+    {
+        CuboidFace[] faces = new[]
+        {
+            new CuboidFace(InworldVertices[0], InworldVertices[1], InworldVertices[2], InworldVertices[3]),
+            new CuboidFace(InworldVertices[4], InworldVertices[5], InworldVertices[6], InworldVertices[7]),
+            new CuboidFace(InworldVertices[0], InworldVertices[1], InworldVertices[5], InworldVertices[4]),
+            new CuboidFace(InworldVertices[2], InworldVertices[3], InworldVertices[7], InworldVertices[6]),
+            new CuboidFace(InworldVertices[0], InworldVertices[3], InworldVertices[7], InworldVertices[4]),
+            new CuboidFace(InworldVertices[1], InworldVertices[2], InworldVertices[6], InworldVertices[5])
+        };
+
+        double closestParameter = double.MaxValue;
+        bool foundIntersection = false;
+        intersection = Vector3d.Zero;
+
+        foreach (CuboidFace face in faces)
+        {
+            if (face.Collide(segmentStart, segmentDirection, out double currentParameter, out Vector3d faceIntersection) && currentParameter < closestParameter)
+            {
+                closestParameter = currentParameter;
+                intersection = faceIntersection;
+                foundIntersection = true;
+            }
+        }
+
+        parameter = closestParameter;
+        return foundIntersection;
+    }
+    public bool Collide(Vector3d thisTickOrigin, Vector3d previousTickOrigin, double radius, out double distance, out Vector3d intersection)
+    {
+        Vector3d[] vertices = new Vector3d[VertexCount];
+        for (int index = 0; index < VertexCount; index++)
+        {
+            vertices[index] = new(InworldVertices[index].X, InworldVertices[index].Y, InworldVertices[index].Z);
+        }
+
+        intersection = ClosestPoint(thisTickOrigin, previousTickOrigin, vertices, out Vector3d segmentClosestPoint);
+        distance = Vector3d.Distance(intersection, segmentClosestPoint);
+
+        return distance <= radius;
+    }
+    public bool Collide(Vector3d thisTickOrigin, Vector3d previousTickOrigin, double radius, out double distance, out Vector3d intersection, out Vector3d segmentClosestPoint)
+    {
+        Vector3d[] vertices = new Vector3d[VertexCount];
+        for (int index = 0; index < VertexCount; index++)
+        {
+            vertices[index] = new(InworldVertices[index].X, InworldVertices[index].Y, InworldVertices[index].Z);
+        }
+
+        intersection = ClosestPoint(thisTickOrigin, previousTickOrigin, vertices, out segmentClosestPoint);
+        distance = Vector3d.Distance(intersection, segmentClosestPoint);
+
+        return distance <= radius;
+    }
+    public void Render(ICoreClientAPI api, EntityAgent entityPlayer, int color = ColorUtil.WhiteArgb)
+    {
+        EntityAgent player = api.World.Player.Entity;
+
+        BlockPos playerPos = player.Pos.AsBlockPos;
+        Vec3f deltaPos = 0 - new Vec3f(playerPos.X, playerPos.Y, playerPos.Z);
+
+        RenderLine(api, InworldVertices[0], InworldVertices[1], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[0], InworldVertices[3], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[0], InworldVertices[4], playerPos, deltaPos, color);
+
+        RenderLine(api, InworldVertices[1], InworldVertices[1], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[1], InworldVertices[5], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[2], InworldVertices[6], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[2], InworldVertices[3], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[3], InworldVertices[7], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[4], InworldVertices[7], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[4], InworldVertices[5], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[6], InworldVertices[7], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[6], InworldVertices[5], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[2], InworldVertices[1], playerPos, deltaPos, color);
+    }
+
+
+
+    private void SetElementVertices(ShapeElement element)
+    {
+        Vector4d from = new(element.From[0], element.From[1], element.From[2], 1);
+        Vector4d to = new(element.To[0], element.To[1], element.To[2], 1);
+        Vector4d diagonal = to - from;
+
+        ElementVertices[0] = from;
+        ElementVertices[6] = to;
+        ElementVertices[1] = new(from.X + diagonal.X, from.Y, from.Z, from.W);
+        ElementVertices[3] = new(from.X, from.Y + diagonal.Y, from.Z, from.W);
+        ElementVertices[4] = new(from.X, from.Y, from.Z + diagonal.Z, from.W);
+        ElementVertices[2] = new(from.X + diagonal.X, from.Y + diagonal.Y, from.Z, from.W);
+        ElementVertices[7] = new(from.X, from.Y + diagonal.Y, from.Z + diagonal.Z, from.W);
+        ElementVertices[5] = new(from.X + diagonal.X, from.Y, from.Z + diagonal.Z, from.W);
+
+        double[] elementMatrixValues = new double[16];
+        Mat4d.Identity(elementMatrixValues);
+        Matrixd elementMatrix = new(elementMatrixValues);
+        if (element.ParentElement != null) GetElementTransformMatrix(elementMatrix, element.ParentElement);
+
+        elementMatrix
+            .Translate(element.RotationOrigin[0], element.RotationOrigin[1], element.RotationOrigin[2])
+            .RotateX((float)element.RotationX * GameMath.DEG2RAD)
+            .RotateY((float)element.RotationY * GameMath.DEG2RAD)
+            .RotateZ((float)element.RotationZ * GameMath.DEG2RAD)
+            .Translate(0f - element.RotationOrigin[0], 0f - element.RotationOrigin[1], 0f - element.RotationOrigin[2]);
+
+        for (int vertex = 0; vertex < VertexCount; vertex++)
+        {
+            ElementVertices[vertex] = ElementVertices[vertex] / 16f;
+            ElementVertices[vertex] = MultiplyVectorByMatrix(elementMatrix.Values, ElementVertices[vertex]);
+            ElementVertices[vertex].W = 1f;
+        }
+    }
+    private static void GetElementTransformMatrix(Matrixd matrix, ShapeElement element)
+    {
+        if (element.ParentElement != null)
+        {
+            GetElementTransformMatrix(matrix, element.ParentElement);
+        }
+
+        if (element.RotationOrigin == null)
+        {
+            element.RotationOrigin = new double[3] { 0, 0, 0 };
+        }
+
+        matrix
+            .Translate(element.RotationOrigin[0], element.RotationOrigin[1], element.RotationOrigin[2])
+            .RotateX((float)element.RotationX * GameMath.DEG2RAD)
+            .RotateY((float)element.RotationY * GameMath.DEG2RAD)
+            .RotateZ((float)element.RotationZ * GameMath.DEG2RAD)
+            .Translate(0f - element.RotationOrigin[0], 0f - element.RotationOrigin[1], 0f - element.RotationOrigin[2])
+            .Translate(element.From[0], element.From[1], element.From[2]);
+    }
+    private static int? GetIndex(int jointId, int matrixElementIndex)
+    {
+        int index = 16 * jointId;
+        int offset = matrixElementIndex; /*matrixElementIndex switch
+        {
+            0 => 0,
+            1 => 1,
+            2 => 2,
+            4 => 3,
+            5 => 4,
+            6 => 5,
+            8 => 6,
+            9 => 7,
+            10 => 8,
+            12 => 9,
+            13 => 10,
+            14 => 11,
+            _ => -1
+        };*/
+
+        if (offset < 0) return null;
+
+        return index + offset;
+    }
+    private double[] GetTransformMatrix(int jointId, float[] TransformationMatrices4x4)
+    {
+        double[] transformMatrix = new double[16];
+        Mat4d.Identity(transformMatrix);
+        for (int elementIndex = 0; elementIndex < 16; elementIndex++)
+        {
+            int? transformMatricesIndex = GetIndex(jointId, elementIndex);
+            if (transformMatricesIndex != null)
+            {
+                if (transformMatricesIndex.Value >= TransformationMatrices4x4.Length)
+                {
+                    return transformMatrix;
+                }
+
+                transformMatrix[elementIndex] = TransformationMatrices4x4[transformMatricesIndex.Value];
+            }
+        }
+        return transformMatrix;
+    }
+    private static void GetElementTransformMatrixA(Matrixd matrix, ShapeElement element, double[] TransformationMatrices4x4)
+    {
+        if (element.ParentElement != null)
+        {
+            GetElementTransformMatrixA(matrix, element.ParentElement, TransformationMatrices4x4);
+        }
+
+        matrix
+            .Translate(element.RotationOrigin[0], element.RotationOrigin[1], element.RotationOrigin[2])
+            .RotateX(element.RotationX * GameMath.DEG2RAD)
+            .RotateY(element.RotationY * GameMath.DEG2RAD)
+            .RotateZ(element.RotationZ * GameMath.DEG2RAD)
+            .Translate(0f - element.RotationOrigin[0], 0f - element.RotationOrigin[1], 0f - element.RotationOrigin[2])
+            .Translate(element.From[0], element.From[1], element.From[2]);
+    }
+    private static Vector4d MultiplyVectorByMatrix(double[] matrix, Vector4d vector)
+    {
+        Vector4d result = new(0, 0, 0, 0);
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                result[i] += matrix[4 * j + i] * vector[j];
+            }
+        }
+        return result;
+    }
+    private static Vector4d MultiplyVectorByMatrix(float[] matrix, Vector4d vector)
+    {
+        Vector4d result = new(0, 0, 0, 0);
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                result[i] += matrix[4 * j + i] * vector[j];
+            }
+        }
+        return result;
+    }
+    private Vector3d ClosestPoint(Vector3d start, Vector3d end, Vector3d[] obbVertices, out Vector3d segmentClosestPoint)
+    {
+        // Assuming the OBB vertices are ordered and form a valid OBB
+        // Calculate the center of the OBB
+        Vector3d center = (obbVertices[0] + obbVertices[1] + obbVertices[2] + obbVertices[3] +
+                          obbVertices[4] + obbVertices[5] + obbVertices[6] + obbVertices[7]) / 8.0f;
+
+        // Calculate the axes of the OBB
+        Vector3d[] axes = new Vector3d[3];
+        axes[0] = Vector3d.Normalize(obbVertices[1] - obbVertices[0]); // X-axis
+        axes[1] = Vector3d.Normalize(obbVertices[3] - obbVertices[0]); // Y-axis
+        axes[2] = Vector3d.Normalize(obbVertices[4] - obbVertices[0]); // Z-axis
+
+        // Calculate the half-sizes of the OBB along each axis
+        double[] halfSizes = new double[3];
+        halfSizes[0] = Vector3d.Distance(obbVertices[0], obbVertices[1]) / 2.0f; // X half-size
+        halfSizes[1] = Vector3d.Distance(obbVertices[0], obbVertices[3]) / 2.0f; // Y half-size
+        halfSizes[2] = Vector3d.Distance(obbVertices[0], obbVertices[4]) / 2.0f; // Z half-size
+
+        // Calculate the closest point on the OBB
+        Vector3d closestPoint = center;
+        segmentClosestPoint = ClosestPointOnSegment(start, end, center);
+        Vector3d direction = segmentClosestPoint - center;
+
+        for (int i = 0; i < 3; i++)
+        {
+            double distance = Vector3d.Dot(direction, axes[i]);
+            distance = Math.Clamp(distance, -halfSizes[i], halfSizes[i]);
+            closestPoint += distance * axes[i];
+        }
+
+        return closestPoint;
+    }
+    private static Vector3d ClosestPointOnSegment(Vector3d A, Vector3d B, Vector3d P)
+    {
+        Vector3d AB = B - A;
+        Vector3d AP = P - A;
+
+        double AB_dot_AB = Vector3d.Dot(AB, AB);
+        double AP_dot_AB = Vector3d.Dot(AP, AB);
+        double t = AP_dot_AB / AB_dot_AB;
+
+        // Clamp t to the range [0, 1]
+        t = Math.Max(0, Math.Min(1, t));
+
+        // Compute the closest point
+        Vector3d closest = A + t * AB;
+        return closest;
+    }
+    private static void RenderLine(ICoreClientAPI api, Vector4d start, Vector4d end, BlockPos playerPos, Vec3f deltaPos, int color)
+    {
+        api.Render.RenderLine(playerPos, (float)start.X + deltaPos.X, (float)start.Y + deltaPos.Y, (float)start.Z + deltaPos.Z, (float)end.X + deltaPos.X, (float)end.Y + deltaPos.Y, (float)end.Z + deltaPos.Z, color);
+    }
+}
+
+
+
+public readonly struct CuboidFace
+{
+    public readonly Vector3d VertexA;
+    public readonly Vector3d VertexB;
+    public readonly Vector3d VertexC;
+    public readonly Vector3d VertexD;
+
+    public CuboidFace(Vector4d vertexA, Vector4d vertexB, Vector4d vertexC, Vector4d vertexD)
+    {
+        VertexA = new(vertexA.X, vertexA.Y, vertexA.Z);
+        VertexB = new(vertexB.X, vertexB.Y, vertexB.Z);
+        VertexC = new(vertexC.X, vertexC.Y, vertexC.Z);
+        VertexD = new(vertexD.X, vertexD.Y, vertexD.Z);
+    }
+
+    private double IntersectPlaneWithLine(Vector3d start, Vector3d direction, Vector3d normal)
+    {
+        double startProjection = Vector3d.Dot(normal, start);
+        double directionProjection = Vector3d.Dot(normal, start + direction);
+        double planeProjection = Vector3d.Dot(normal, VertexA);
+
+        return (planeProjection - startProjection) / (directionProjection - startProjection);
+    }
+
+    public bool Collide(Vector3d segmentStart, Vector3d segmentDirection, out double parameter, out Vector3d intersection)
+    {
+        Vector3d normal = Vector3d.Cross(VertexB - VertexA, VertexC - VertexA);
+
+        #region Check if segment is parallel to the plane defined by the face
+        double denominator = Vector3d.Dot(normal, segmentDirection);
+        if (Math.Abs(denominator) < 0.0001f)
+        {
+            parameter = -1;
+            intersection = Vector3d.Zero;
+            return false;
+        }
+        #endregion
+
+        #region Compute intersection point with the plane defined by the face and check if segment intersects the plane
+        parameter = IntersectPlaneWithLine(segmentStart, segmentDirection, normal);
+        if (parameter < 0 || parameter > 1)
+        {
+            intersection = Vector3d.Zero;
+            return false;
+        }
+        #endregion
+
+        intersection = segmentStart + parameter * segmentDirection;
+
+        #region Check if the intersection point is within the face boundaries
+        Vector3d edge0 = VertexB - VertexA;
+        Vector3d vp0 = intersection - VertexA;
+        if (Vector3d.Dot(normal, Vector3d.Cross(edge0, vp0)) < 0)
+        {
+            return false;
+        }
+
+        Vector3d edge1 = VertexC - VertexB;
+        Vector3d vp1 = intersection - VertexB;
+        if (Vector3d.Dot(normal, Vector3d.Cross(edge1, vp1)) < 0)
+        {
+            return false;
+        }
+
+        Vector3d edge2 = VertexD - VertexC;
+        Vector3d vp2 = intersection - VertexC;
+        if (Vector3d.Dot(normal, Vector3d.Cross(edge2, vp2)) < 0)
+        {
+            return false;
+        }
+
+        Vector3d edge3 = VertexA - VertexD;
+        Vector3d vp3 = intersection - VertexD;
+        if (Vector3d.Dot(normal, Vector3d.Cross(edge3, vp3)) < 0)
+        {
+            return false;
+        }
+        #endregion
+
+        return true;
+    }
+}

@@ -1,0 +1,40 @@
+﻿[
+  {
+    "side": "Server",
+    "file": "game:entities/animal/mammal/hooved/deer-adult",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*": {
+          "Torso": ["Neck", "Chest", "Midsection", "Rear", "L Shoulder", "L Haunch", "R Shoulder", "R Haunch"],
+          "Head": ["Head", "MouthUp", "Snout", "Jaw"],
+          "Arm": ["L ArmUp", "L ArmMid", "L ArmLow", "R ArmUp", "R ArmMid", "R ArmLow"],
+          "Leg": ["L LegUp", "L LegLow", "R LegUp", "R LegLow"],
+          "Critical": ["Neck2"],
+          "Resistant": []
+        }
+      }
+    }
+  },
+  {
+    "side": "Server",
+    "file": "game:entities/animal/mammal/hooved/deer-baby",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*": {
+          "Torso": ["Neck", "Chest", "Midsection", "Rear", "L Shoulder", "L Haunch", "R Shoulder", "R Haunch"],
+          "Head": ["Head", "MouthUp", "Snout", "Jaw"],
+          "Arm": ["L ArmUp", "L ArmMid", "L ArmLow", "R ArmUp", "R ArmMid", "R ArmLow"],
+          "Leg": ["L LegUp", "L LegLow", "R LegUp", "R LegLow"],
+          "Critical": ["Neck2"],
+          "Resistant": []
+        }
+      }
+    }
+  }
+]

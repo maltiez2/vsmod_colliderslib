@@ -1,0 +1,99 @@
+[
+  {
+    "target": "bear-adult",
+    "side": "Server",
+    "file": "game:entities/animal/mammal/bear-adult",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elements": {
+        "Torso": ["shoulders", "body", "abdomen"],
+        "Head": ["neck", "head", "cheeks", "mouth"],
+        "Arm": ["L front leg", "L front leg3", "L front foot", "R front leg", "R front feet", "R front paw"],
+        "Leg": ["L back leg", "L back feet", "R back feet", "R back leg", "L back paw", "R back paw"],
+        "Critical": [],
+        "Resistant": []
+      },
+      "defaultPenetrationResistance": 9
+    }
+  },
+  {
+    "target": "fox-adult",
+    "side": "Server",
+    "file": "game:entities/animal/mammal/fox-adult",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*": {
+          "Torso": ["neck", "body", "abdomen", "tail", "L back leg", "R back leg"],
+          "Head": ["head", "mouth"],
+          "Arm": ["L front leg", "left front feet", "R front leg", "right front feet"],
+          "Leg": ["L back feet", "R back feet"],
+          "Critical": [],
+          "Resistant": []
+        }
+      },
+      "defaultPenetrationResistance": 3
+    }
+  },
+  {
+    "target": "fox-baby",
+    "side": "Server",
+    "file": "game:entities/animal/mammal/fox-baby",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*": {
+          "Torso": ["neck", "body", "abdomen", "L back leg", "R back leg"],
+          "Head": ["head", "mouth"],
+          "Arm": ["L front leg", "L front feet", "R front leg", "R front feet"],
+          "Leg": ["L back feet", "R back feet"],
+          "Critical": [],
+          "Resistant": []
+        }
+      },
+      "defaultPenetrationResistance": 3
+    }
+  },
+  {
+    "target": "wolf-adult",
+    "side": "Server",
+    "file": "game:entities/animal/mammal/wolf-adult",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elements": {
+        "Torso": ["Neck", "Chest", "Midsection", "Rear", "L Shoulder", "R Shoulder", "L Haunch", "R Haunch"],
+        "Head": ["Head", "Nose", "L Jowl", "R Jowl"],
+        "Arm": ["L ArmUp", "L ArmMid", "L ArmLow", "R ArmUp", "R ArmMid", "R ArmLow"],
+        "Leg": ["L LegUp", "L LegLow", "R LegUp", "R LegLow"],
+        "Critical": [],
+        "Resistant": []
+      }
+    }
+  },
+  {
+    "target": "wolf-baby",
+    "side": "Server",
+    "file": "game:entities/animal/mammal/wolf-baby",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elements": {
+        "Torso": ["neck", "body", "abdomen"],
+        "Head": ["head", "mouth"],
+        "Arm": ["L front leg", "L front feet", "R front leg", "R front feet"],
+        "Leg": ["L back leg", "L back feet", "R back leg", "R back feet"],
+        "Critical": [],
+        "Resistant": []
+      }
+    }
+  }
+]

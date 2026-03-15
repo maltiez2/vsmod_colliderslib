@@ -1,0 +1,29 @@
+﻿[
+  {
+    "side": "Server",
+    "file": "game:entities/animal/mammal/hooved/pig-adult",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elements": {
+        "Torso": ["body", "L back leg", "R back leg"],
+        "Head": ["neck", "head", "cheeks"],
+        "Arm": ["R front feet", "L front feet"],
+        "Leg": ["L back feet", "R back feet"],
+        "Critical": [],
+        "Resistant": []
+      }
+    }
+  },
+  {
+    "side": "Server",
+    "file": "game:entities/animal/mammal/hooved/pig-baby",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elements": {"Torso": ["body"], "Head": ["head", "nose"], "Arm": ["R front feet", "L front feet"], "Leg": ["L back feet", "R back feet"], "Critical": [], "Resistant": []}
+    }
+  }
+]

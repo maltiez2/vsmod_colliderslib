@@ -1,0 +1,48 @@
+﻿[
+  {
+    "side": "Server",
+    "file": "game:entities/animal/mammal/hooved/goat-adult",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*-sirohi-*": {
+          "Torso": ["neck", "Body", "midsection", "rear", "R front Thigh", "L front Thigh", "L back Thigh", "R back Thigh"],
+          "Head": ["head", "ConvexBridge1", "ConvexBridge2", "mouth up"],
+          "Arm": ["L front Upper Arm", "R front Upper Arm", "R front lower arm", "L front lower arm"],
+          "Leg": ["R back Upper Arm", "L back Upper Arm", "R back lower arm", "L back lower arm"],
+          "Critical": ["neck2"],
+          "Resistant": []
+        },
+        "*": {
+          "Torso": ["neck", "Body", "midsection", "rear", "R front Thigh", "L front Thigh", "L back Thigh", "R back Thigh"],
+          "Head": ["head", "nose bridge", "mouth up"],
+          "Arm": ["L front Upper Arm", "R front Upper Arm", "R front lower arm", "L front lower arm"],
+          "Leg": ["R back Upper Arm", "L back Upper Arm", "R back lower arm", "L back lower arm"],
+          "Critical": ["neck2"],
+          "Resistant": []
+        }
+      }
+    }
+  },
+  {
+    "side": "Server",
+    "file": "game:entities/animal/mammal/hooved/goat-baby",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*": {
+          "Torso": ["neck", "Body", "midsection", "rear", "R front Thigh", "L front Thigh", "L back Thigh", "R back Thigh"],
+          "Head": ["head", "nose bridge", "mouth up"],
+          "Arm": ["L front Upper Arm", "R front Upper Arm", "R front lower arm", "L front lower arm"],
+          "Leg": ["R back Upper Arm", "L back Upper Arm", "R back lower arm", "L back lower arm"],
+          "Critical": ["neck2"],
+          "Resistant": []
+        }
+      }
+    }
+  }
+]

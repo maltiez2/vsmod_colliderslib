@@ -1,0 +1,24 @@
+﻿[
+  {
+    "side": "Server",
+    "file": "game:entities/animal/mammal/hare-adult",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elements": {"Torso": ["abdomen", "body", "L back leg", "R back leg"], "Head": ["head", "mouth"], "Arm": [], "Leg": [], "Critical": ["neck"], "Resistant": []},
+      "defaultPenetrationResistance": 2
+    }
+  },
+  {
+    "side": "Server",
+    "file": "game:entities/animal/mammal/hare-baby",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elements": {"Torso": ["abdomen", "body", "L back leg", "R back leg"], "Head": ["head", "mouth"], "Arm": [], "Leg": [], "Critical": ["neck"], "Resistant": []},
+      "defaultPenetrationResistance": 0
+    }
+  }
+]

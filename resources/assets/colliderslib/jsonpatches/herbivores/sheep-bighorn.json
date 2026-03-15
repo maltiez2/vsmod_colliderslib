@@ -1,0 +1,29 @@
+﻿[
+  {
+    "side": "Server",
+    "file": "game:entities/animal/mammal/hooved/sheep-adult",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*-male": {
+          "Torso": ["neck", "Body", "R back leg", "L back leg"],
+          "Head": ["head", "mouth up"],
+          "Arm": ["R back foot", "L back foot"],
+          "Leg": ["R front leg", "R front foot", "L front leg", "L front foot"],
+          "Critical": [],
+          "Resistant": ["R horn base", " R horn 2", "R horn 3", "R horn 4", "L horn base20", "L horn 21", "L horn 22", "L horn 23"]
+        },
+        "*-female": {
+          "Torso": ["neck", "Body", "R back leg", "L back leg"],
+          "Head": ["head", "mouth up"],
+          "Arm": ["R back foot", "L back foot"],
+          "Leg": ["R front leg", "R front foot", "L front leg", "L front foot"],
+          "Critical": [],
+          "Resistant": []
+        }
+      }
+    }
+  }
+]

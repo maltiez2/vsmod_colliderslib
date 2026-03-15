@@ -1,0 +1,165 @@
+[
+  {
+    "target": "drifter",
+    "side": "Server",
+    "file": "game:entities/lore/drifter",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*-double-headed": {
+          "Torso": ["Body", "Abdomen", "Kupris"],
+          "Head": ["Extra neck", "Extra head", "Neck 1", "Head 1", "Neck 2", "Head 2"],
+          "Arm": ["L shoulder", "L upper arm", "L lower arm", "R shoulder", "R upper arm", "R lower arm"],
+          "Leg": ["L thigh", "L feet", "R thigh", "R feet"],
+          "Critical": [],
+          "Resistant": []
+        },
+        "*": {
+          "Torso": ["Body", "Abdomen", "Kupris"],
+          "Head": ["Neck", "Head"],
+          "Arm": ["L shoulder", "L upper arm", "L lower arm", "R shoulder", "R upper arm", "R lower arm"],
+          "Leg": ["L thigh", "L feet", "R thigh", "R feet"],
+          "Critical": [],
+          "Resistant": []
+        }
+      }
+    }
+  },
+  {
+    "target": "bowtorn",
+    "side": "Server",
+    "file": "game:entities/lore/bowtorn",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*-gearfoot": {
+          "Torso": ["Pelvis", "Midsection", "Chest", "Neck1"],
+          "Head": ["Face", "Mouth", "Head2", "Head"],
+          "Arm": [],
+          "Leg": ["L Calf", "L Thigh", "R Calf", "R Thigh"],
+          "Critical": ["Neck2", "Neck3"],
+          "Resistant": ["PlateRB2", "PlateRA1", "Plate1", "PlateLA1", "PlateLA2", "PlateRA2", "Plate2", "Plate3", "PlateLA3", "PlateRA3", "Plate4", "Plate6", "Plate5"]
+        },
+        "*-nightmare": {
+          "Torso": ["Pelvis", "Midsection", "Chest", "Neck1"],
+          "Head": ["Head", "Mouth", "Face"],
+          "Arm": [],
+          "Leg": ["L Calf", "L Thigh", "R Calf", "R Thigh", "ToeR2", "ToeR3", "ToeR1", "ToeR4"],
+          "Critical": ["Neck2", "Neck3"],
+          "Resistant": [
+            "Visor",
+            "Helmet1",
+            "Helmet2",
+            "HelmetL",
+            "HelmetR",
+            "L Pauldron",
+            "LameL1",
+            "LameL2",
+            "R Pauldron",
+            "LameR1",
+            "Plate1",
+            "Plate2",
+            "ArmorLegL1",
+            "ArmorLegL2",
+            "ArmorL1"
+          ]
+        },
+        "*-surface": {
+          "Torso": ["Pelvis", "Midsection", "Chest", "Neck1"],
+          "Head": ["Head", "Mouth", "Head2", "Head3"],
+          "Arm": [],
+          "Leg": ["L Calf", "L Thigh", "R Calf", "R Thigh"],
+          "Critical": ["Neck2", "Neck3"],
+          "Resistant": []
+        },
+        "*": {
+          "Torso": ["Pelvis", "Midsection", "Chest", "Neck1"],
+          "Head": ["Face", "Mouth", "Head2", "Head"],
+          "Arm": [],
+          "Leg": ["L Calf", "L Thigh", "R Calf", "R Thigh"],
+          "Critical": ["Neck2", "Neck3"],
+          "Resistant": []
+        }
+      }
+    }
+  },
+  {
+    "target": "shiver",
+    "side": "Server",
+    "file": "game:entities/lore/shiver",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*-bellhead": {
+          "Torso": ["TorsoUp", "TorsoLow"],
+          "Head": ["L Head2", "L Head1", "R Head2", "R Head1"],
+          "Arm": ["R Hand", "L Hand", "R ArmLow", "L ArmLow", "R ArmUp", "L ArmUp"],
+          "Leg": ["R Toes", "R LegLow", "R LegUp", "R Thigh", "L Toes", "L LegLow", "L LegUp", "L Thigh"],
+          "Critical": ["R Neck1", "R Neck2", "L Neck2", "L Neck1"],
+          "Resistant": ["E1", "S1", "W1", "N1", "W2", "N2", "E2", "S2", "N3", "E3", "S3", "W3"]
+        },
+        "*": {
+          "Torso": ["TorsoUp", "TorsoLow"],
+          "Head": ["L Head2", "L Head1", "R Head2", "R Head1"],
+          "Arm": ["R Hand", "L Hand", "R ArmLow", "L ArmLow", "R ArmUp", "L ArmUp"],
+          "Leg": ["R Toes", "R LegLow", "R LegUp", "R Thigh", "L Toes", "L LegLow", "L LegUp", "L Thigh"],
+          "Critical": ["R Neck1", "R Neck2", "L Neck2", "L Neck1"],
+          "Resistant": []
+        }
+      }
+    }
+  },
+  {
+    "target": "bell",
+    "side": "Server",
+    "file": "game:entities/lore/bell",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elements": {
+        "Torso": ["vertebrae 1", "vertebrae 2", "vertebrae 3", "vertebrae 4", "vertebrae 5", "vertebrae 6", "vertebrae 7", "vertebrae 8"],
+        "Head": [],
+        "Arm": [],
+        "Leg": ["funnel 1", "funnel 2", "funnel 3", "funnel 4"],
+        "Critical": ["stone"],
+        "Resistant": ["S tip", "W tip", "E tip", "N tip", "N", "W", "S", "E", "E small", "N small", "W small", "S small", "top"]
+      }
+    }
+  },
+  {
+    "target": "locust",
+    "side": "Server",
+    "file": "game:entities/lore/locust",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*-corrupt-sawblade": {
+          "Torso": [],
+          "Head": ["body"],
+          "Arm": ["segment 1", "segment 2", "segment 3", "segment 5", "segment 6", "sawblade base"],
+          "Leg": ["leg extention 21", "leg extention 18", "leg extention 15", "leg extention 5", "leg extention 3", "leg extention 1"],
+          "Critical": [],
+          "Resistant": []
+        },
+        "*": {
+          "Torso": ["abdomen"],
+          "Head": ["body"],
+          "Arm": [],
+          "Leg": ["leg extention 21", "leg extention 18", "leg extention 15", "leg extention 5", "leg extention 3", "leg extention 1"],
+          "Critical": [],
+          "Resistant": []
+        }
+      },
+      "defaultPenetrationResistance": 3
+    }
+  }
+]
