@@ -1,6 +1,7 @@
 ﻿using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.GameContent;
 
 namespace CollidersLib;
 
@@ -53,6 +54,7 @@ public class CollidersTranformBehavior : EntityBehavior
     protected long LastOffhandHandItem = 0;
     protected Matrixf? CachedMainHandModelMatrix;
     protected Matrixf? CachedOffHandModelMatrix;
+    protected readonly Matrixf MatrixBuffer = new();
 
     protected virtual bool TryGetCachedModelMatrix(bool mainHand, out Matrixf? modelMatrix)
     {
@@ -80,11 +82,34 @@ public class CollidersTranformBehavior : EntityBehavior
     {
         if (mainHand)
         {
-            return ColliderTools.GetHeldItemModelMatrix(Player, Player.RightHandItemSlot, Api, mainHand: true);
+            return GetHeldItemModelMatrix(Player, Player.RightHandItemSlot, Api, mainHand: true);
         }
         else
         {
-            return ColliderTools.GetHeldItemModelMatrix(Player, Player.LeftHandItemSlot, Api, mainHand: false);
+            return GetHeldItemModelMatrix(Player, Player.LeftHandItemSlot, Api, mainHand: false);
         }
+    }
+
+    protected Matrixf? GetHeldItemModelMatrix(EntityAgent entity, ItemSlot itemSlot, ICoreClientAPI api, bool mainHand = true)
+    {
+        if (entity.Properties.Client.Renderer is not EntityShapeRenderer entityShapeRenderer) return null;
+
+        ItemStack? itemStack = itemSlot?.Itemstack;
+        if (itemStack == null) return null;
+
+        AttachmentPointAndPose? attachmentPointAndPose = entity.AnimManager?.Animator?.GetAttachmentPointPose(mainHand ? "RightHand" : "LeftHand");
+        if (attachmentPointAndPose == null) return null;
+
+        AttachmentPoint attachPoint = attachmentPointAndPose.AttachPoint;
+        ItemRenderInfo itemStackRenderInfo = api.Render.GetItemStackRenderInfo(itemSlot, mainHand ? EnumItemRenderTarget.HandTp : EnumItemRenderTarget.HandTpOff, 0f);
+        if (itemStackRenderInfo?.Transform == null) return null;
+
+        return MatrixBuffer.Set(entityShapeRenderer.ModelMat).Mul(attachmentPointAndPose.AnimModelMatrix).Translate(itemStackRenderInfo.Transform.Origin.X, itemStackRenderInfo.Transform.Origin.Y, itemStackRenderInfo.Transform.Origin.Z)
+            .Scale(itemStackRenderInfo.Transform.ScaleXYZ.X, itemStackRenderInfo.Transform.ScaleXYZ.Y, itemStackRenderInfo.Transform.ScaleXYZ.Z)
+            .Translate(attachPoint.PosX / 16.0 + itemStackRenderInfo.Transform.Translation.X, attachPoint.PosY / 16.0 + itemStackRenderInfo.Transform.Translation.Y, attachPoint.PosZ / 16.0 + itemStackRenderInfo.Transform.Translation.Z)
+            .RotateX((float)(attachPoint.RotationX + itemStackRenderInfo.Transform.Rotation.X) * (MathF.PI / 180f))
+            .RotateY((float)(attachPoint.RotationY + itemStackRenderInfo.Transform.Rotation.Y) * (MathF.PI / 180f))
+            .RotateZ((float)(attachPoint.RotationZ + itemStackRenderInfo.Transform.Rotation.Z) * (MathF.PI / 180f))
+            .Translate(0f - itemStackRenderInfo.Transform.Origin.X, 0f - itemStackRenderInfo.Transform.Origin.Y, 0f - itemStackRenderInfo.Transform.Origin.Z);
     }
 }

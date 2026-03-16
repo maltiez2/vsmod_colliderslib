@@ -47,36 +47,7 @@ public sealed class ShapeElementCollider
             InworldVertices[vertex].Z += playerPos.Z;
         }
     }
-    public bool Collide(Vector3d segmentStart, Vector3d segmentDirection, out double parameter, out Vector3d intersection)
-    {
-        CuboidFace[] faces = new[]
-        {
-            new CuboidFace(InworldVertices[0], InworldVertices[1], InworldVertices[2], InworldVertices[3]),
-            new CuboidFace(InworldVertices[4], InworldVertices[5], InworldVertices[6], InworldVertices[7]),
-            new CuboidFace(InworldVertices[0], InworldVertices[1], InworldVertices[5], InworldVertices[4]),
-            new CuboidFace(InworldVertices[2], InworldVertices[3], InworldVertices[7], InworldVertices[6]),
-            new CuboidFace(InworldVertices[0], InworldVertices[3], InworldVertices[7], InworldVertices[4]),
-            new CuboidFace(InworldVertices[1], InworldVertices[2], InworldVertices[6], InworldVertices[5])
-        };
-
-        double closestParameter = double.MaxValue;
-        bool foundIntersection = false;
-        intersection = Vector3d.Zero;
-
-        foreach (CuboidFace face in faces)
-        {
-            if (face.Collide(segmentStart, segmentDirection, out double currentParameter, out Vector3d faceIntersection) && currentParameter < closestParameter)
-            {
-                closestParameter = currentParameter;
-                intersection = faceIntersection;
-                foundIntersection = true;
-            }
-        }
-
-        parameter = closestParameter;
-        return foundIntersection;
-    }
-    public bool Collide(Vector3d thisTickOrigin, Vector3d previousTickOrigin, double radius, out double distance, out Vector3d intersection)
+    public bool Collide(Vector3d head, Vector3d tail, double radius, out double distance, out Vector3d intersection, out Vector3d segmentClosestPoint)
     {
         Vector3d[] vertices = new Vector3d[VertexCount];
         for (int index = 0; index < VertexCount; index++)
@@ -84,20 +55,7 @@ public sealed class ShapeElementCollider
             vertices[index] = new(InworldVertices[index].X, InworldVertices[index].Y, InworldVertices[index].Z);
         }
 
-        intersection = ClosestPoint(thisTickOrigin, previousTickOrigin, vertices, out Vector3d segmentClosestPoint);
-        distance = Vector3d.Distance(intersection, segmentClosestPoint);
-
-        return distance <= radius;
-    }
-    public bool Collide(Vector3d thisTickOrigin, Vector3d previousTickOrigin, double radius, out double distance, out Vector3d intersection, out Vector3d segmentClosestPoint)
-    {
-        Vector3d[] vertices = new Vector3d[VertexCount];
-        for (int index = 0; index < VertexCount; index++)
-        {
-            vertices[index] = new(InworldVertices[index].X, InworldVertices[index].Y, InworldVertices[index].Z);
-        }
-
-        intersection = ClosestPoint(thisTickOrigin, previousTickOrigin, vertices, out segmentClosestPoint);
+        intersection = ClosestPoint(head, tail, vertices, out segmentClosestPoint);
         distance = Vector3d.Distance(intersection, segmentClosestPoint);
 
         return distance <= radius;

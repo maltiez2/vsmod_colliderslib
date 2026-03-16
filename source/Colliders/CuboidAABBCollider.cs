@@ -1,7 +1,6 @@
-﻿using Vintagestory.API.Common;
+﻿using OpenTK.Mathematics;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
-using OpenTK.Mathematics;
 
 namespace CollidersLib;
 
@@ -37,62 +36,8 @@ public readonly struct CuboidAABBCollider
             Math.Max(collisionBox.Z1 + (float)position.Z, collisionBox.Z2 + (float)position.Z));
     }
 
-    public bool Collide(Vector3d segmentStart, Vector3d segmentDirection, out double parameter)
-    {
-        Vector3d min = Vector3d.ComponentMin(Min, Max);
-        Vector3d max = Vector3d.ComponentMax(Min, Max);
 
-        parameter = 0;
-
-        double tmin = (min.X - segmentStart.X) / segmentDirection.X;
-        double tmax = (max.X - segmentStart.X) / segmentDirection.X;
-
-        if (tmin > tmax)
-        {
-            (tmax, tmin) = (tmin, tmax);
-        }
-
-        double tymin = (min.Y - segmentStart.Y) / segmentDirection.Y;
-        double tymax = (max.Y - segmentStart.Y) / segmentDirection.Y;
-
-        if (tymin > tymax)
-        {
-            (tymax, tymin) = (tymin, tymax);
-        }
-
-        if ((tmin > tymax) || (tymin > tmax))
-        {
-            return false;
-        }
-
-        if (tymin > tmin)
-        {
-            tmin = tymin;
-        }
-
-        if (tymax < tmax)
-        {
-            tmax = tymax;
-        }
-
-        double tzmin = (min.Z - segmentStart.Z) / segmentDirection.Z;
-        double tzmax = (max.Z - segmentStart.Z) / segmentDirection.Z;
-
-        if (tzmin > tzmax)
-        {
-            (tzmax, tzmin) = (tzmin, tzmax);
-        }
-
-        if ((tmin > tzmax) || (tzmin > tmax))
-        {
-            return false;
-        }
-
-        parameter = tzmin;
-
-        return true;
-    }
-    public bool Collide(Vector3d origin, double radius, out Vector3d intersection)
+    public bool IntersectShpere(Vector3d origin, double radius, out Vector3d intersection)
     {
         intersection = new(
             Math.Clamp(origin.X, Math.Min(Min.X, Max.X), Math.Max(Min.X, Max.X)),
@@ -104,25 +49,22 @@ public readonly struct CuboidAABBCollider
 
         return distanceSquared <= radius * radius;
     }
-    public bool Collide(Vector3d thisTickOrigin, Vector3d previousTickOrigin, double radius, out Vector3d intersection)
+    public bool IntersectCapsule(Vector3d head, Vector3d tail, double radius, out Vector3d intersection)
     {
-        if ((thisTickOrigin - previousTickOrigin).LengthSquared < radius / 2)
+        if ((head - tail).LengthSquared < radius * radius / 4)
         {
-            bool collided = Collide(thisTickOrigin, radius, out _);
+            bool collided = IntersectShpere(head, radius, out _);
 
-            intersection = thisTickOrigin;
+            intersection = head;
 
             return collided;
         }
 
-        bool intersects = SegmentIntersectsAABB(previousTickOrigin, thisTickOrigin, Min, Max, out Vector3d intersectionStart, out Vector3d intersectionEnd, out Vector3d closestPointOnSegment, out Vector3d closestPointOnBox);
+        bool intersects = SegmentIntersectsAABB(tail, head, Min, Max, out Vector3d intersectionStart, out Vector3d intersectionEnd, out Vector3d closestPointOnSegment, out Vector3d closestPointOnBox);
 
         if (intersects)
         {
             intersection = intersectionStart - (intersectionEnd - intersectionStart).Normalized() * radius;
-#if DEBUG
-            //_api?.World.SpawnParticles(1, ColorUtil.ColorFromRgba(0, 255, 0, 125), new(intersection.X, intersection.Y, intersection.Z), new(intersection.X, intersection.Y, intersection.Z), new Vec3f(), new Vec3f(), 3, 0, 1.0f, EnumParticleModel.Cube);            
-#endif
             return true;
         }
         else
@@ -131,84 +73,8 @@ public readonly struct CuboidAABBCollider
         }
 
         double distanceSquared = Vector3d.DistanceSquared(intersection, closestPointOnBox);
-#if DEBUG
-        //_api?.World.SpawnParticles(1, ColorUtil.ColorFromRgba(0, 255, 0, 125), new(intersection.X, intersection.Y, intersection.Z), new(intersection.X, intersection.Y, intersection.Z), new Vec3f(), new Vec3f(), 3, 0, 1.0f, EnumParticleModel.Cube);
-#endif
+
         return distanceSquared <= radius * radius;
-    }
-    public static bool CollideWithTerrain(
-        IBlockAccessor blockAccessor,
-        Vector3d thisTickOrigin,
-        Vector3d previousTickOrigin,
-        double radius,
-        out Vector3d intersection,
-        out Vector3d normal,
-        out BlockFacing? facing,
-        out Block? block,
-        out BlockPos? blockPosition)
-    {
-        int minX = (int)(Math.Min(thisTickOrigin.X, previousTickOrigin.X) - radius);
-        int minY = (int)(Math.Min(thisTickOrigin.Y, previousTickOrigin.Y) - radius);
-        int minZ = (int)(Math.Min(thisTickOrigin.Z, previousTickOrigin.Z) - radius);
-
-        int maxX = (int)(Math.Max(thisTickOrigin.X, previousTickOrigin.X) + radius);
-        int maxY = (int)(Math.Max(thisTickOrigin.Y, previousTickOrigin.Y) + radius);
-        int maxZ = (int)(Math.Max(thisTickOrigin.Z, previousTickOrigin.Z) + radius);
-
-        blockPosition = null;
-        BlockPos blockPos = _blockPosBuffer;
-        Vec3d blockPosVec = _vecBuffer;
-        block = null;
-        facing = null;
-        intersection = new();
-        normal = new();
-        double shortestDistance = double.MaxValue;
-        for (int y = minY; y <= maxY; y++)
-        {
-            blockPos.SetAndCorrectDimension(minX, y, minZ);
-            blockPosVec.Set(minX, y, minZ);
-            for (int x = minX; x <= maxX; x++)
-            {
-                blockPos.X = x;
-                blockPosVec.X = x;
-                for (int z = minZ; z <= maxZ; z++)
-                {
-                    blockPos.Z = z;
-                    Block? blockBuffer = blockAccessor.GetBlock(blockPos, BlockLayersAccess.MostSolid);
-
-                    Cuboidf?[]? collisionBoxes = blockBuffer.GetCollisionBoxes(blockAccessor, blockPos);
-                    if (collisionBoxes == null || collisionBoxes.Length == 0) continue;
-
-                    blockPosVec.Z = z;
-                    for (int i = 0; i < collisionBoxes.Length; i++)
-                    {
-                        Cuboidf? collisionBox = collisionBoxes[i];
-
-                        if (collisionBox == null) continue;
-
-                        collisionBox = collisionBox.OffsetCopy(blockPos);
-
-                        CuboidAABBCollider collider = new(collisionBox);
-
-                        if (collider.Collide(thisTickOrigin, previousTickOrigin, radius, out Vector3d currentIntersection))
-                        {
-                            double currentDistance = (currentIntersection - previousTickOrigin).Length;
-
-                            if (currentDistance < shortestDistance)
-                            {
-                                intersection = currentIntersection;
-                                shortestDistance = currentDistance;
-                                block = blockBuffer;
-                                blockPosition = blockPos.Copy();
-                                facing = collider.GetFacing(intersection - collider.Center, out normal);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return block != null;
     }
 
     public BlockFacing GetFacing(Vector3d direction, out Vector3d normal)
@@ -219,9 +85,6 @@ public readonly struct CuboidAABBCollider
     }
 
 
-
-    private static BlockPos _blockPosBuffer = new(0);
-    private static Vec3d _vecBuffer = new();
 
     private static Vector3d GetIntersectingFaceNormal(Vector3d min, Vector3d max, Vector3d dir)
     {
@@ -263,7 +126,7 @@ public readonly struct CuboidAABBCollider
         closestPointOnBox = Vector3d.Zero;
 
         Vector3d dir = p2 - p1;
-        Vector3d invDir = new Vector3d(
+        Vector3d invDir = new(
             1.0 / (dir.X != 0.0 ? dir.X : double.Epsilon),
             1.0 / (dir.Y != 0.0 ? dir.Y : double.Epsilon),
             1.0 / (dir.Z != 0.0 ? dir.Z : double.Epsilon)
@@ -337,10 +200,5 @@ public readonly struct CuboidAABBCollider
         );
     }
 
-    private static void Swap(ref double a, ref double b)
-    {
-        double tmp = a;
-        a = b;
-        b = tmp;
-    }
+    private static void Swap(ref double a, ref double b) => (b, a) = (a, b);
 }
