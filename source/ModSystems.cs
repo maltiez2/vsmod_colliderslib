@@ -1,4 +1,7 @@
-﻿using Vintagestory.API.Common;
+﻿using CollidersLib.Projectiles;
+using Vintagestory.API.Client;
+using Vintagestory.API.Common;
+using Vintagestory.API.Server;
 
 namespace CollidersLib;
 
@@ -6,14 +9,29 @@ public sealed class CollidersLibSystem : ModSystem
 {
     public Settings Settings { get; private set; } = new();
 
+    public ProjectileCollisionsSynchroniserServer? ProjectileCollisionsSynchroniserServer { get; private set; }
+    public ProjectileCollisionsSynchroniserClient? ProjectileCollisionsSynchroniserClient { get; private set; }
+
     public override void Start(ICoreAPI api)
     {
         api.RegisterEntityBehaviorClass("CollidersLib:EntityColliders", typeof(CollidersEntityBehavior));
         api.RegisterEntityBehaviorClass("CollidersLib:CollidersTranform", typeof(CollidersTranformBehavior));
+        api.RegisterEntityBehaviorClass("CollidersLib:ProjectileColliderServer", typeof(ProjectileColliderServerBehavior));
+        api.RegisterEntityBehaviorClass("CollidersLib:ProjectileColliderClient", typeof(ProjectileColliderClientBehavior));
 
         HarmonyPatches.Patch("CollidersLib", api);
 
         _api = api;
+    }
+
+    public override void StartClientSide(ICoreClientAPI api)
+    {
+        ProjectileCollisionsSynchroniserClient = new(api);
+    }
+
+    public override void StartServerSide(ICoreServerAPI api)
+    {
+        ProjectileCollisionsSynchroniserServer = new(api);
     }
 
     public override void Dispose()

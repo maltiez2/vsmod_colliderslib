@@ -1,5 +1,6 @@
 ﻿using OpenTK.Mathematics;
 using Vintagestory.API.Common;
+using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 
 namespace CollidersLib;
@@ -108,7 +109,7 @@ public readonly struct TerrainWithShpereIntersectionData
 
 public static class CollisionSolvers
 {
-    public static bool CollideWithEntity(this ItemCapsuleCollider itemCollider, CollidersEntityBehavior entityColliders, out List<EntityWithCapsuleIntersectionData> intersections)
+    public static bool CollideWithEntity(this ItemCapsuleCollider itemCollider, Entity target, CollidersEntityBehavior? entityColliders, out List<EntityWithCapsuleIntersectionData> intersections)
     {
         Vector3d previousTickDirection = itemCollider.PreviousInWorldCollider.Direction;
         Vector3d previousTickStart = itemCollider.PreviousInWorldCollider.Position;
@@ -130,30 +131,33 @@ public static class CollisionSolvers
             Vector3d head = startHead + directionHead * subdivisionParameter;
             Vector3d tail = startTail + directionTail * subdivisionParameter;
 
-            CollideWithEntity(entityColliders, head, tail, radius, intersections, subdivisionParameter);
+            CollideWithEntity(target, entityColliders, head, tail, radius, intersections, subdivisionParameter);
         }
 
         return intersections.Any();
     }
-    public static bool CollideWithEntity(this EntitySphereCollider itemCollider, CollidersEntityBehavior entityColliders, out List<EntityWithSphereIntersectionData> intersections)
+    public static bool CollideWithEntity(this EntitySphereCollider itemCollider, Entity target, CollidersEntityBehavior? entityColliders, out List<EntityWithSphereIntersectionData> intersections)
     {
         intersections = [];
 
-        CollideWithEntity(entityColliders, itemCollider.Position, itemCollider.PreviousPosition, itemCollider.Radius, intersections);
+        CollideWithEntity(target, entityColliders, itemCollider.Position, itemCollider.PreviousPosition, itemCollider.Radius, intersections);
 
         return intersections.Count != 0;
     }
-    private static void CollideWithEntity(CollidersEntityBehavior entityColliders, Vector3d head, Vector3d tail, float radius, List<EntityWithCapsuleIntersectionData> intersections, float subdivision = 1f)
+    private static void CollideWithEntity(Entity target, CollidersEntityBehavior? entityColliders, Vector3d head, Vector3d tail, float radius, List<EntityWithCapsuleIntersectionData> intersections, float subdivision = 1f)
     {
-        if (!entityColliders.HasOBBCollider)
+        if (entityColliders == null || !entityColliders.HasOBBCollider)
         {
-            CuboidAABBCollider AABBCollider = new(entityColliders.entity);
-            AABBCollider.IntersectCapsule(head, tail, radius, out Vector3d intersection);
+            CuboidAABBCollider AABBCollider = new(target);
+            if (AABBCollider.IntersectCapsule(head, tail, radius, out Vector3d intersection))
+            {
+                Vector3d segmentPoint = intersection - tail;
+                double parameter = GameMath.Clamp(1 - segmentPoint.Length / (head - tail).Length, 0, 1);
 
-            Vector3d segmentPoint = intersection - tail;
-            double parameter = GameMath.Clamp(1 - segmentPoint.Length / (head - tail).Length, 0, 1);
+                intersections.Add(new(null, intersection, parameter, subdivision));
+            }
 
-            intersections.Add(new(null, intersection, parameter, subdivision));
+            return;
         }
 
         if (!entityColliders.BoundingBox.IntersectCapsule(head, tail, radius, out _))
@@ -172,17 +176,20 @@ public static class CollisionSolvers
             }
         }
     }
-    private static void CollideWithEntity(CollidersEntityBehavior entityColliders, Vector3d head, Vector3d tail, float radius, List<EntityWithSphereIntersectionData> intersections)
+    private static void CollideWithEntity(Entity target, CollidersEntityBehavior? entityColliders, Vector3d head, Vector3d tail, float radius, List<EntityWithSphereIntersectionData> intersections)
     {
-        if (!entityColliders.HasOBBCollider)
+        if (entityColliders == null || !entityColliders.HasOBBCollider)
         {
-            CuboidAABBCollider AABBCollider = new(entityColliders.entity);
-            AABBCollider.IntersectCapsule(head, tail, radius, out Vector3d intersection);
+            CuboidAABBCollider AABBCollider = new(target);
+            if (AABBCollider.IntersectCapsule(head, tail, radius, out Vector3d intersection))
+            {
+                Vector3d segmentPoint = intersection - tail;
+                double parameter = GameMath.Clamp(1 - segmentPoint.Length / (head - tail).Length, 0, 1);
 
-            Vector3d segmentPoint = intersection - tail;
-            double parameter = GameMath.Clamp(1 - segmentPoint.Length / (head - tail).Length, 0, 1);
+                intersections.Add(new(null, intersection, parameter));
+            }
 
-            intersections.Add(new(null, intersection, parameter));
+            return;
         }
 
         if (!entityColliders.BoundingBox.IntersectCapsule(head, tail, radius, out _))
@@ -338,7 +345,7 @@ public static class CollisionSolvers
     }
 
 
-    private static void CollideWithTerrainFast(Vector3d head, Vector3d tail, float radius, ICoreAPI api, List<TerrainWithShpereIntersectionData> intersections)
+    /*private static void CollideWithTerrainFast(Vector3d head, Vector3d tail, float radius, ICoreAPI api, List<TerrainWithShpereIntersectionData> intersections)
     {
         var accessor = api.World.BlockAccessor;
 
@@ -435,5 +442,5 @@ public static class CollisionSolvers
             return (s - Math.Floor(s)) / -ds;
         else
             return double.PositiveInfinity;
-    }
+    }*/
 }
