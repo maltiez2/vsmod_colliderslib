@@ -1,8 +1,16 @@
 ﻿using OpenTK.Mathematics;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 
 namespace CollidersLib;
+
+public class ItemCapsuleColliderJson
+{
+    public float[] Position { get; set; } = [];
+    public float[] Direction { get; set; } = [];
+    public float Radius { get; set; }
+}
 
 public class ItemCapsuleCollider
 {
@@ -38,5 +46,18 @@ public class ItemCapsuleCollider
         }
 
         return true;
+    }
+
+    public static ItemCapsuleCollider FromJson(JsonObject json)
+    {
+        ItemCapsuleColliderJson? jsonValues = json.AsObject<ItemCapsuleColliderJson>();
+        if (jsonValues == null || jsonValues.Position.Length != 3 || jsonValues.Direction.Length != 3)
+        {
+            throw new InvalidDataException($"Failed to parse 'ItemCapsuleCollider' from json: {json.ToString()}");
+        }
+
+        Vector3 position = new(jsonValues.Position[0], jsonValues.Position[1], jsonValues.Position[2]);
+        Vector3 direction = new(jsonValues.Direction[0], jsonValues.Direction[1], jsonValues.Direction[2]);
+        return new(position, direction, jsonValues.Radius);
     }
 }

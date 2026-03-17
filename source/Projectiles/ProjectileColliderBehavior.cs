@@ -11,6 +11,7 @@ public class ProjectileColliderConfig
     public float Radius { get; set; } = 0;
 }
 
+
 public class ProjectileColliderServerBehavior : EntityBehavior
 {
     public ProjectileColliderServerBehavior(Entity entity) : base(entity)
@@ -43,6 +44,7 @@ public class ProjectileColliderServerBehavior : EntityBehavior
 
     protected readonly ProjectileCollisionsSynchroniserServer CollisionsSycnronizer;
 }
+
 
 public class ProjectileColliderClientBehavior : EntityBehavior
 {

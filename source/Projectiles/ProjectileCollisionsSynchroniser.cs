@@ -8,7 +8,7 @@ using Vintagestory.API.Server;
 
 namespace CollidersLib.Projectiles;
 
-public class ProjectileCollisionsSynchroniser
+public abstract class ProjectileCollisionsSynchroniser
 {
     [ProtoContract(ImplicitFields = ImplicitFields.AllPublic)]
     public class ProjectileCollisionsPacket
@@ -72,6 +72,7 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
 
     private readonly IServerNetworkChannel _serverChannel;
     private readonly ICoreServerAPI _api;
+
 
     private void HandlePacket(IPlayer player, ProjectileCollisionsPacket packet)
     {
@@ -151,6 +152,7 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
     }
 }
 
+
 public sealed class ProjectileCollisionsSynchroniserClient : ProjectileCollisionsSynchroniser
 {
     public ProjectileCollisionsSynchroniserClient(ICoreClientAPI api)
@@ -178,6 +180,7 @@ public sealed class ProjectileCollisionsSynchroniserClient : ProjectileCollision
 
     private readonly IClientNetworkChannel _clientChannel;
     private readonly ICoreClientAPI _api;
+
 
     private void HandlePacket(ProjectileEnableCollisionsPacket packet)
     {
