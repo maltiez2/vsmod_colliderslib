@@ -1,11 +1,9 @@
 ﻿using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
-using static OpenTK.Graphics.OpenGL.GL;
 
 namespace CollidersLib.Items;
 

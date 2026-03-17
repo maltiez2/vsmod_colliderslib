@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <!-- Mod info -->
   <PropertyGroup>
-    <ModName>colliderslib</ModName>
+    <ModName>Colliders lib</ModName>
     <ModType>code</ModType>
-    <ModVersion>0.0.0</ModVersion>
+    <ModVersion>0.0.1</ModVersion>
     <ModId>colliderslib</ModId>
     <Description></Description>
     <Side>universal</Side>
@@ -13,7 +13,7 @@
 
   <!-- Authors -->
   <ItemGroup>
-    <ModInfoAuthors Include="Author" />
+    <ModInfoAuthors Include="maltiez" />
   </ItemGroup>
 
   <!-- Dependencies -->

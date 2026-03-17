@@ -51,7 +51,8 @@ public readonly struct EntityWithSphereIntersectionData
     /// </summary>
     public readonly Vector3d IntersectionPoint;
     /// <summary>
-    /// Intersection is done between previous and current positions. This number represents lerp paramerter between the two, where 0 is previous position and 1 is current one.
+    /// Intersection is done between previous and current positions. This number represents lerp paramerter between the two, where 0 is previous position and 1 is current one.<br/>
+    /// Current position is moved further by the max size of the entity boudning box. Values higher than one correspont for collisions beyond current position.
     /// </summary>
     public readonly double PositionInTime;
 
@@ -197,12 +198,16 @@ public static class CollisionSolvers
             return;
         }
 
+        double maxEntitySize = (entityColliders.BoundingBox.Max - entityColliders.BoundingBox.Min).Length;
+        Vector3d extendedHead = head + (head - tail).Normalized() * maxEntitySize;
+        double distanceScaleBackFactor =  (extendedHead - tail).Length / (head - tail).Length;
+
         foreach (ShapeElementCollider shapeElementCollider in entityColliders.Colliders)
         {
-            if (shapeElementCollider.Collide(head, tail, radius, out double currentDistance, out Vector3d currentIntersection, out Vector3d segmentClosestPoint))
+            if (shapeElementCollider.Collide(extendedHead, tail, radius, out double currentDistance, out Vector3d currentIntersection, out Vector3d segmentClosestPoint))
             {
                 Vector3d segmentPoint = segmentClosestPoint - tail;
-                double parameter = GameMath.Clamp(1 - (segmentPoint.Length + currentDistance) / (head - tail).Length, 0, 1);
+                double parameter = GameMath.Clamp(1 - (segmentPoint.Length + currentDistance) / (extendedHead - tail).Length, 0, 1) * distanceScaleBackFactor;
 
                 intersections.Add(new(shapeElementCollider, currentIntersection, parameter));
             }
