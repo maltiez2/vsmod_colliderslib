@@ -260,13 +260,15 @@ public static class CollisionSolvers
     }
     private static void CollideWithTerrain(Vector3d head, Vector3d tail, float radius, ICoreAPI api, List<TerrainWithShpereIntersectionData> intersections)
     {
-        int minX = (int)Math.Min(head.X, tail.X);
-        int minY = (int)Math.Min(head.Y, tail.Y);
-        int minZ = (int)Math.Min(head.Z, tail.Z);
+        int minX = (int)Math.Floor(Math.Min(head.X, tail.X) - radius);
+        int minY = (int)Math.Floor(Math.Min(head.Y, tail.Y) - radius);
+        int minZ = (int)Math.Floor(Math.Min(head.Z, tail.Z) - radius);
 
-        int maxX = (int)Math.Max(head.X, tail.X);
-        int maxY = (int)Math.Max(head.Y, tail.Y);
-        int maxZ = (int)Math.Max(head.Z, tail.Z);
+        int maxX = (int)Math.Ceiling(Math.Max(head.X, tail.X) + radius);
+        int maxY = (int)Math.Ceiling(Math.Max(head.Y, tail.Y) + radius);
+        int maxZ = (int)Math.Ceiling(Math.Max(head.Z, tail.Z) + radius);
+
+        IBlockAccessor blockAccessor = api.World.BlockAccessor;
 
         for (int y = minY; y <= maxY; y++)
         {
@@ -274,7 +276,7 @@ public static class CollisionSolvers
             {
                 for (int z = minZ; z <= maxZ; z++)
                 {
-                    CollideWithBlock(head, tail, radius, api.World.BlockAccessor, x, y, z, intersections);
+                    CollideWithBlock(head, tail, radius, blockAccessor, x, y, z, intersections);
                 }
             }
         }
@@ -333,5 +335,105 @@ public static class CollisionSolvers
                     positionOnCollider));
             }
         }
+    }
+
+
+    private static void CollideWithTerrainFast(Vector3d head, Vector3d tail, float radius, ICoreAPI api, List<TerrainWithShpereIntersectionData> intersections)
+    {
+        var accessor = api.World.BlockAccessor;
+
+        int r = (int)Math.Ceiling(radius);
+
+        HashSet<long> visited = new HashSet<long>();
+
+        Vector3d dir = head - tail;
+        double length = dir.Length;
+
+        if (length == 0) return;
+
+        dir /= length;
+
+        int x = (int)Math.Floor(tail.X);
+        int y = (int)Math.Floor(tail.Y);
+        int z = (int)Math.Floor(tail.Z);
+
+        int endX = (int)Math.Floor(head.X);
+        int endY = (int)Math.Floor(head.Y);
+        int endZ = (int)Math.Floor(head.Z);
+
+        int stepX = Math.Sign(dir.X);
+        int stepY = Math.Sign(dir.Y);
+        int stepZ = Math.Sign(dir.Z);
+
+        double tMaxX = IntBound(tail.X, dir.X);
+        double tMaxY = IntBound(tail.Y, dir.Y);
+        double tMaxZ = IntBound(tail.Z, dir.Z);
+
+        double tDeltaX = stepX / dir.X;
+        double tDeltaY = stepY / dir.Y;
+        double tDeltaZ = stepZ / dir.Z;
+
+        while (true)
+        {
+            // Check neighborhood for capsule radius
+            for (int ix = -r; ix <= r; ix++)
+            {
+                for (int iy = -r; iy <= r; iy++)
+                {
+                    for (int iz = -r; iz <= r; iz++)
+                    {
+                        int bx = x + ix;
+                        int by = y + iy;
+                        int bz = z + iz;
+
+                        long key = ((long)bx << 42) ^ ((long)by << 21) ^ (long)bz;
+
+                        if (!visited.Add(key)) continue;
+
+                        CollideWithBlock(head, tail, radius, accessor, bx, by, bz, intersections);
+                    }
+                }
+            }
+
+            if (x == endX && y == endY && z == endZ)
+                break;
+
+            if (tMaxX < tMaxY)
+            {
+                if (tMaxX < tMaxZ)
+                {
+                    x += stepX;
+                    tMaxX += tDeltaX;
+                }
+                else
+                {
+                    z += stepZ;
+                    tMaxZ += tDeltaZ;
+                }
+            }
+            else
+            {
+                if (tMaxY < tMaxZ)
+                {
+                    y += stepY;
+                    tMaxY += tDeltaY;
+                }
+                else
+                {
+                    z += stepZ;
+                    tMaxZ += tDeltaZ;
+                }
+            }
+        }
+    }
+
+    private static double IntBound(double s, double ds)
+    {
+        if (ds > 0)
+            return (Math.Ceiling(s) - s) / ds;
+        else if (ds < 0)
+            return (s - Math.Floor(s)) / -ds;
+        else
+            return double.PositiveInfinity;
     }
 }

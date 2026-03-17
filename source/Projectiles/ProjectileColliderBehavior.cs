@@ -26,11 +26,11 @@ public class ProjectileColliderClientBehavior : EntityBehavior
     {
     }
 
-    public override string PropertyName() => "ProjectileColliderBehavior";
-
 
     public EntitySphereCollider Collider { get; set; } = new();
+    public long ShooterEntityId { get; set; }
 
+    
     public override void Initialize(EntityProperties properties, JsonObject attributes)
     {
         ProjectileColliderConfig config = attributes.AsObject<ProjectileColliderConfig>() ?? new();
@@ -44,4 +44,6 @@ public class ProjectileColliderClientBehavior : EntityBehavior
     {
 
     }
+
+    public override string PropertyName() => "ProjectileColliderBehavior";
 }
