@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using CollidersLib.VectorsUtils;
+using Newtonsoft.Json.Linq;
+using OpenTK.Mathematics;
 using System.Collections.Immutable;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -8,18 +10,24 @@ using Vintagestory.API.Datastructures;
 namespace CollidersLib.Items;
 
 
-public readonly struct ItemColliderCollisionData
+public readonly struct ItemColliderCollisionData(int colliderIndex, Dictionary<Entity, EntityWithCapsuleIntersectionData[]> entityCollisions, List<TerrainWithCapsuleIntersectionData> terrainCollisions)
 {
-    public readonly int ColliderIndex;
-    public readonly IImmutableDictionary<Entity, EntityWithCapsuleIntersectionData[]> EntityCollisions;
-    public readonly IImmutableList<TerrainWithCapsuleIntersectionData> TerrainCollisions;
+    public readonly int ColliderIndex = colliderIndex;
+    public readonly IImmutableDictionary<Entity, EntityWithCapsuleIntersectionData[]> EntityCollisions = entityCollisions.ToImmutableDictionary();
+    public readonly IImmutableList<TerrainWithCapsuleIntersectionData> TerrainCollisions = terrainCollisions.ToImmutableList();
+}
 
-    public ItemColliderCollisionData(int colliderIndex, Dictionary<Entity, EntityWithCapsuleIntersectionData[]> entityCollisions, List<TerrainWithCapsuleIntersectionData> terrainCollisions)
-    {
-        ColliderIndex = colliderIndex;
-        EntityCollisions = entityCollisions.ToImmutableDictionary();
-        TerrainCollisions = terrainCollisions.ToImmutableList();
-    }
+public readonly struct SingleCollisionData(double normalizedPosition, int colliderIndex, Entity? target, EntityWithCapsuleIntersectionData? entityCollision, TerrainWithCapsuleIntersectionData? terrainCollision, bool behindTerrain, double positionInTime, double positionOnCollider, bool behindAttacker)
+{
+    public readonly double NormalizedPosition = normalizedPosition;
+    public readonly int ColliderIndex = colliderIndex;
+    public readonly Entity? Target = target;
+    public readonly EntityWithCapsuleIntersectionData? EntityCollision = entityCollision;
+    public readonly TerrainWithCapsuleIntersectionData? TerrainCollision = terrainCollision;
+    public readonly bool BehindTerrain = behindTerrain;
+    public readonly bool BehindAttacker = behindAttacker;
+    public readonly double PositionInTime = positionInTime;
+    public readonly double PositionOnCollider = positionOnCollider;
 }
 
 
@@ -83,12 +91,20 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
         }
     }
 
-    public virtual void ResetColliders()
+    public virtual void ResetColliders(EntityPlayer player, ItemSlot inSlot)
     {
-        ResetColliderNextTick = true;
+        bool mainHand = inSlot == player.RightHandItemSlot;
+        if (mainHand)
+        {
+            MainHandResetColliderNextTick = true;
+        }
+        else
+        {
+            OffHandResetColliderNextTick = true;
+        }
     }
 
-    public virtual void CheckCollisions(EntityPlayer player, ItemSlot inSlot, out List<ItemColliderCollisionData> collisions, bool restColliders = false)
+    public virtual void CheckCollisions(EntityPlayer player, ItemSlot inSlot, out List<ItemColliderCollisionData> collisions, bool resetColliders = false, int[]? collidersToCheck = null)
     {
         collisions = [];
 
@@ -107,32 +123,64 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
             return;
         }
 
-        if (restColliders)
-        {
-            ResetColliderNextTick = true;
-        }
-
         bool mainHand = inSlot == player.RightHandItemSlot;
 
-        TryCollide(player, inSlot, api, mainHand, out collisions);
+        if (resetColliders)
+        {
+            if (mainHand)
+            {
+                MainHandResetColliderNextTick = true;
+            }
+            else
+            {
+                OffHandResetColliderNextTick = true;
+            }
+        }
+
+        TryCollide(player, inSlot, api, mainHand, out collisions, collidersToCheck);
+    }
+
+    public virtual List<SingleCollisionData> SortCollisions(EntityPlayer player, List<ItemColliderCollisionData> collisions, Dictionary<int, double> collidersPriority, bool ingoreTerrainBehindAttacker = false)
+    {
+        NormalizeCollidersPriorities(collidersPriority);
+
+        List<SingleCollisionData> result = FlattenCollisionsData(player, collisions, collidersPriority);
+
+        result = result.OrderBy(entry => entry.NormalizedPosition).ToList();
+
+        result = CheckIfBehindTerrain(result, ingoreTerrainBehindAttacker);
+
+        return result;
     }
 
 
+    protected bool MainHandResetColliderNextTick { get; set; } = false;
+    protected bool OffHandResetColliderNextTick { get; set; } = false;
 
     protected ItemCollisionsSynchroniserClient? CollisionsSychronizer;
-    protected bool ResetColliderNextTick { get; set; } = false;
     protected readonly Item Item;
 
 
-    protected virtual void TryCollide(EntityPlayer player, ItemSlot inSlot, ICoreClientAPI api, bool mainHand, out List<ItemColliderCollisionData> collisions)
+    protected virtual void TryCollide(EntityPlayer player, ItemSlot inSlot, ICoreClientAPI api, bool mainHand, out List<ItemColliderCollisionData> collisions, int[]? collidersToCheck)
     {
+        bool resetColliders = mainHand ? MainHandResetColliderNextTick : OffHandResetColliderNextTick;
+
         foreach (ItemCapsuleCollider collier in Colliders.Values)
         {
-            collier.TransformCollider(player, mainHand, ResetColliderNextTick);
+            collier.TransformCollider(player, mainHand, resetColliders);
         }
-        ResetColliderNextTick = false;
 
-        GatherCollisionData(player, api, out collisions);
+        if (mainHand)
+        {
+            MainHandResetColliderNextTick = false;
+        }
+        else
+        {
+            OffHandResetColliderNextTick = false;
+        }
+
+
+        GatherCollisionData(player, api, out collisions, collidersToCheck);
 
         if (collisions.Count > 0)
         {
@@ -145,7 +193,7 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
         }
     }
 
-    protected virtual void GatherCollisionData(EntityPlayer player, ICoreClientAPI api, out List<ItemColliderCollisionData> collisions)
+    protected virtual void GatherCollisionData(EntityPlayer player, ICoreClientAPI api, out List<ItemColliderCollisionData> collisions, int[]? collidersToCheck)
     {
         Entity[] targets = api.World.GetEntitiesAround(player.Pos.XYZ, SearchRadius, SearchRadius);
         Dictionary<Entity, CollidersEntityBehavior?> targetsColliders = targets.ToDictionary(target => target, targets => targets.GetBehavior<CollidersEntityBehavior>());
@@ -153,6 +201,11 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
         collisions = [];
         foreach ((int colliderIndex, ItemCapsuleCollider collider) in Colliders)
         {
+            if (collidersToCheck != null && !collidersToCheck.Contains(colliderIndex))
+            {
+                continue;
+            }
+
             Dictionary<Entity, EntityWithCapsuleIntersectionData[]> entityCollisions = [];
             foreach ((Entity target, CollidersEntityBehavior? targetColliders) in targetsColliders)
             {
@@ -169,5 +222,105 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
                 collisions.Add(new(colliderIndex, entityCollisions, terrainCollisions));
             }
         }
+    }
+
+    protected virtual void NormalizeCollidersPriorities(Dictionary<int, double> collidersPriority)
+    {
+        double maxPriority = Math.Max(1.0, collidersPriority.Values.Max());
+        foreach (int collider in Colliders.Keys)
+        {
+            collidersPriority[collider] = collidersPriority[collider] / maxPriority;
+        }
+    }
+
+    protected virtual List<SingleCollisionData> FlattenCollisionsData(EntityPlayer player, List<ItemColliderCollisionData> collisions, Dictionary<int, double> collidersPriority)
+    {
+        Vector3d playerPosition = player.Pos.XYZ.ToOpenTK();
+        Vector3d eyesPosition = player.LocalEyePos.ToOpenTK() + playerPosition;
+        Vector3d viewDirection = player.Pos.GetViewVector().ToVec3d().ToOpenTK();
+        double eyesProjection = Vector3d.Dot(viewDirection, eyesPosition);
+
+        List<SingleCollisionData> result = [];
+        foreach (ItemColliderCollisionData collision in collisions)
+        {
+            double colliderPriority = collidersPriority[collision.ColliderIndex];
+
+            foreach ((Entity target, EntityWithCapsuleIntersectionData[] entityCollisions) in collision.EntityCollisions)
+            {
+                foreach (EntityWithCapsuleIntersectionData entityCollision in entityCollisions)
+                {
+                    double normalizedPosition = (colliderPriority * 10.0 + entityCollision.NormalizedPosition) / 11.0;
+                    double positionOnCollider = (colliderPriority * 10.0 + entityCollision.PositionOnCollider) / 11.0;
+                    double hitProjection = Vector3d.Dot(viewDirection, entityCollision.IntersectionPoint);
+                    bool behindAttacker = hitProjection > eyesProjection;
+
+                    SingleCollisionData collisionData = new(normalizedPosition, collision.ColliderIndex, target, entityCollision, null, false, entityCollision.PositionInTime, positionOnCollider, behindAttacker);
+                    result.Add(collisionData);
+                }
+            }
+
+            foreach (TerrainWithCapsuleIntersectionData terrainCollision in collision.TerrainCollisions)
+            {
+                double normalizedPosition = (colliderPriority * 10.0 + terrainCollision.NormalizedPosition) / 11.0;
+                double positionOnCollider = (colliderPriority * 10.0 + terrainCollision.PositionOnCollider) / 11.0;
+                double hitProjection = Vector3d.Dot(viewDirection, terrainCollision.IntersectionPoint);
+                bool behindAttacker = hitProjection > eyesProjection;
+
+                SingleCollisionData collisionData = new(normalizedPosition, collision.ColliderIndex, null, null, terrainCollision, false, terrainCollision.PositionInTime, positionOnCollider, behindAttacker);
+                result.Add(collisionData);
+            }
+        }
+        return result;
+    }
+
+    protected virtual List<SingleCollisionData> CheckIfBehindTerrain(List<SingleCollisionData> collisions, bool ingoreTerrainBehindAttacker)
+    {
+        List<(double from, double to, double distance)> terrainCollisions = [];
+
+        foreach (SingleCollisionData collision in collisions)
+        {
+            if (collision.TerrainCollision == null)
+            {
+                continue;
+            }
+
+            if (ingoreTerrainBehindAttacker && collision.BehindAttacker)
+            {
+                continue;
+            }
+
+            double radiusInTime = 1.0 / collision.TerrainCollision.Value.SubdivisionsNumber / 0.5;
+
+            terrainCollisions.Add((collision.PositionInTime - radiusInTime, collision.PositionInTime + radiusInTime, collision.PositionOnCollider));
+        }
+
+        List<SingleCollisionData> result = [];
+
+        foreach (SingleCollisionData collision in collisions)
+        {
+            double positionOnCollider = collision.PositionOnCollider;
+            double positionInTime = collision.PositionInTime;
+            bool behindTerrain = false;
+
+            foreach ((double from, double to, double distance) in terrainCollisions)
+            {
+                if (distance >= positionOnCollider)
+                {
+                    continue;
+                }
+
+                if (from > positionInTime || to < positionInTime)
+                {
+                    continue;
+                }
+
+                behindTerrain = true;
+                break;
+            }
+
+            result.Add(new(collision.NormalizedPosition, collision.ColliderIndex, collision.Target, collision.EntityCollision, collision.TerrainCollision, behindTerrain, collision.PositionInTime, collision.PositionOnCollider, collision.BehindAttacker));
+        }
+
+        return result;
     }
 }

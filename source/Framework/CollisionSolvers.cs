@@ -1,4 +1,5 @@
-﻿using OpenTK.Mathematics;
+﻿using Cairo;
+using OpenTK.Mathematics;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
@@ -73,10 +74,11 @@ public readonly struct TerrainWithCapsuleIntersectionData
     public readonly Vector3i BlockPosition;
     public readonly double PositionOnCollider;
     public readonly double PositionInTime;
+    public readonly int SubdivisionsNumber;
 
     public double NormalizedPosition => Math.Clamp((PositionInTime * 10.0 + PositionOnCollider) / 11.0, 0, 1);
 
-    public TerrainWithCapsuleIntersectionData(Block block, BlockFacing facing, Vector3d normal, Vector3d intersectionPoint, Vector3i blockPosition, double positionOnCollider, double positionInTime)
+    public TerrainWithCapsuleIntersectionData(Block block, BlockFacing facing, Vector3d normal, Vector3d intersectionPoint, Vector3i blockPosition, double positionOnCollider, double positionInTime, int subDivisionsNumber)
     {
         Block = block;
         Facing = facing;
@@ -85,6 +87,7 @@ public readonly struct TerrainWithCapsuleIntersectionData
         BlockPosition = blockPosition;
         PositionOnCollider = positionOnCollider;
         PositionInTime = positionInTime;
+        SubdivisionsNumber = subDivisionsNumber;
     }
 }
 
@@ -236,7 +239,7 @@ public static class CollisionSolvers
             Vector3d head = startHead + directionHead * subdivisionParameter;
             Vector3d tail = startTail + directionTail * subdivisionParameter;
 
-            CollideWithTerrain(head, tail, radius, api, intersections, subdivisionParameter);
+            CollideWithTerrain(head, tail, radius, api, intersections, subdivisionParameter, subdivisions);
         }
 
         return intersections.Any();
@@ -249,7 +252,7 @@ public static class CollisionSolvers
 
         return intersections.Count != 0;
     }
-    private static void CollideWithTerrain(Vector3d head, Vector3d tail, float radius, ICoreAPI api, List<TerrainWithCapsuleIntersectionData> intersections, float subdivision = 1f)
+    private static void CollideWithTerrain(Vector3d head, Vector3d tail, float radius, ICoreAPI api, List<TerrainWithCapsuleIntersectionData> intersections, float subdivision = 1f, int subsivisionsNumber = 1)
     {
         int minX = (int)Math.Min(head.X, tail.X);
         int minY = (int)Math.Min(head.Y, tail.Y);
@@ -265,7 +268,7 @@ public static class CollisionSolvers
             {
                 for (int z = minZ; z <= maxZ; z++)
                 {
-                    CollideWithBlock(head, tail, radius, api.World.BlockAccessor, x, y, z, intersections, subdivision);
+                    CollideWithBlock(head, tail, radius, api.World.BlockAccessor, x, y, z, intersections, subdivision, subsivisionsNumber);
                 }
             }
         }
@@ -293,7 +296,7 @@ public static class CollisionSolvers
             }
         }
     }
-    private static void CollideWithBlock(Vector3d head, Vector3d tail, float radius, IBlockAccessor blockAccessor, int x, int y, int z, List<TerrainWithCapsuleIntersectionData> intersections, float subdivision = 1f)
+    private static void CollideWithBlock(Vector3d head, Vector3d tail, float radius, IBlockAccessor blockAccessor, int x, int y, int z, List<TerrainWithCapsuleIntersectionData> intersections, float subdivision = 1f, int subdivisionsNumber = 1)
     {
         BlockPos position = new(x, y, z, 0);
         Block block = blockAccessor.GetBlock(position, BlockLayersAccess.MostSolid);
@@ -317,7 +320,8 @@ public static class CollisionSolvers
                     intersectionPoint,
                     new(x, y, z),
                     positionOnCollider,
-                    subdivision));
+                    subdivision,
+                    subdivisionsNumber));
             }
         }
     }

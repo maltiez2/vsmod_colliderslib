@@ -53,6 +53,7 @@ public abstract class ItemCollisionsSynchroniser
         public int BlockPositionZ { get; set; }
         public double PositionOnCollider { get; set; }
         public double PositionInTime { get; set; }
+        public int SubdivisionsNumber { get; set; }
     }
 }
 
@@ -195,7 +196,8 @@ public sealed class ItemCollisionsSynchroniserServer : ItemCollisionsSynchronise
             new(collision.IntersectionPointX, collision.IntersectionPointY, collision.IntersectionPointY),
             new(collision.BlockPositionX, collision.BlockPositionY, collision.BlockPositionZ),
             collision.PositionOnCollider,
-            collision.PositionInTime);
+            collision.PositionInTime,
+            collision.SubdivisionsNumber);
     }
 }
 
@@ -294,7 +296,8 @@ public sealed class ItemCollisionsSynchroniserClient : ItemCollisionsSynchronise
             BlockPositionY = collision.BlockPosition.Y,
             BlockPositionZ = collision.BlockPosition.Z,
             PositionOnCollider = collision.PositionOnCollider,
-            PositionInTime = collision.PositionInTime
+            PositionInTime = collision.PositionInTime,
+            SubdivisionsNumber = collision.SubdivisionsNumber
         };
     }
 }
