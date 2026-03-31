@@ -113,7 +113,7 @@ public sealed class ItemCollisionsSynchroniserServer : ItemCollisionsSynchronise
             colliders.Add(colliderIndex);
         }
 
-        List<ItemColliderCollisionData> collisions = [];
+        List<ColliderItemCollisionData> collisions = [];
         foreach (int colliderIndex in colliders)
         {
             GenerateCollisionsData(colliderIndex, packet, collisions);
@@ -125,7 +125,7 @@ public sealed class ItemCollisionsSynchroniserServer : ItemCollisionsSynchronise
         }
     }
 
-    private void GenerateCollisionsData(int colliderIndex, ItemCollisionsPacket packet, List<ItemColliderCollisionData> collisions)
+    private void GenerateCollisionsData(int colliderIndex, ItemCollisionsPacket packet, List<ColliderItemCollisionData> collisions)
     {
         Dictionary<Entity, EntityWithCapsuleIntersectionData[]> entityCollisions = [];
         if (packet.EntityCollisions.TryGetValue(colliderIndex, out Dictionary<long, ItemEntityCollisionPacketData[]>? packetEntityCollisions))
@@ -213,12 +213,12 @@ public sealed class ItemCollisionsSynchroniserClient : ItemCollisionsSynchronise
             .SetMessageHandler<ItemEnableCollisionsPacket>(HandlePacket);
     }
 
-    public void SendCollisions(EntityPlayer playerHoldingItem, Item item, bool mainHand, List<ItemColliderCollisionData> collisions)
+    public void SendCollisions(EntityPlayer playerHoldingItem, Item item, bool mainHand, List<ColliderItemCollisionData> collisions)
     {
         Dictionary<int, Dictionary<long, ItemEntityCollisionPacketData[]>> entityCollisions = [];
         Dictionary<int, List<ItemTerrainCollisionPacketData>> terrainCollisions = [];
 
-        foreach (ItemColliderCollisionData collision in collisions)
+        foreach (ColliderItemCollisionData collision in collisions)
         {
             entityCollisions.Add(collision.ColliderIndex, collision.EntityCollisions.ToDictionary(entry => entry.Key.EntityId, entry => entry.Value.Select(GenerateEntityCollisionData).ToArray()));
             terrainCollisions.Add(collision.ColliderIndex, collision.TerrainCollisions.Select(GenerateTerrainCollisionData).ToList());
