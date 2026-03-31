@@ -21,7 +21,6 @@ public sealed class CollidersLibSystem : ModSystem
         api.RegisterEntityBehaviorClass("CollidersLib:EntityColliders", typeof(CollidersEntityBehavior));
         api.RegisterEntityBehaviorClass("CollidersLib:CollidersTranform", typeof(CollidersTranformBehavior));
         api.RegisterEntityBehaviorClass("CollidersLib:ProjectileColliderServer", typeof(ProjectileColliderServerBehavior));
-        api.RegisterEntityBehaviorClass("CollidersLib:ProjectileColliderClient", typeof(ProjectileColliderClientBehavior));
         api.RegisterCollectibleBehaviorClass("CollidersLib:ItemCollidersServer", typeof(ItemCollidersBehaviorServer));
         api.RegisterCollectibleBehaviorClass("CollidersLib:ItemCollidersClient", typeof(ItemCollidersBehaviorClient));
 

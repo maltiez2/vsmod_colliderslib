@@ -1,4 +1,5 @@
 ﻿using CollidersLib.Utils;
+using OpenTK.Mathematics;
 using ProtoBuf;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -19,11 +20,15 @@ public abstract class ProjectileCollisionsSynchroniser
     }
 
     [ProtoContract(ImplicitFields = ImplicitFields.AllPublic)]
-    public class ProjectileEnableCollisionsPacket
+    public class ProjectileUpdateCollisionsPacket
     {
         public long ProjectileEntityId { get; set; }
+        public long TimeStamp { get; set; }
         public bool EnableCollisions { get; set; }
+        public double[] Position { get; set; } = [];
+        public float Radius { get; set; }
     }
+
 
     public struct ProjectileEntityCollisionPacketData
     {
@@ -57,22 +62,55 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
     public ProjectileCollisionsSynchroniserServer(ICoreServerAPI api)
     {
         _api = api;
+        _collisionTestersManager = new(api, HandleUpdate);
         _serverChannel = api.Network.RegisterChannel("ProjectileCollisionsSynchroniserClient")
             .RegisterMessageType<ProjectileCollisionsPacket>()
-            .RegisterMessageType<ProjectileEnableCollisionsPacket>()
+            .RegisterMessageType<ProjectileUpdateCollisionsPacket>()
             .SetMessageHandler<ProjectileCollisionsPacket>(HandlePacket);
     }
 
-    public void ToggleProjectileCollisions(IServerPlayer projectileOwner, long projectileEntityId, bool enable)
+    public void ToggleProjectileCollisions(IServerPlayer projectileOwner, Entity projectile, bool enable, float radius)
     {
-        _serverChannel.SendPacket(new ProjectileEnableCollisionsPacket() { EnableCollisions = enable, ProjectileEntityId = projectileEntityId }, projectileOwner);
+        long projectileId = projectile.EntityId;
+        
+        if (enable)
+        {
+            _collisionTestersManager.StartUpdates(projectile, radius);
+            _projectileOwners[projectileId] = projectileOwner;
+        }
+        else
+        {
+            _collisionTestersManager.StopUpdates(projectileId);
+            ProjectileUpdateCollisionsPacket packet = new()
+            {
+                ProjectileEntityId = projectileId,
+                EnableCollisions = false
+            };
+            _serverChannel.SendPacket(packet, _projectileOwners[projectileId]);
+            _projectileOwners.Remove(projectileId);
+        }
     }
 
 
 
     private readonly IServerNetworkChannel _serverChannel;
     private readonly ICoreServerAPI _api;
+    private readonly ProjectileCollisionTestersManagerServer _collisionTestersManager;
+    private readonly Dictionary<long, IServerPlayer> _projectileOwners = [];
 
+
+    private void HandleUpdate(long projectileId, long timeStamp, Vector3d position, float radius)
+    {
+        ProjectileUpdateCollisionsPacket packet = new()
+        {
+            ProjectileEntityId = projectileId,
+            TimeStamp = timeStamp,
+            EnableCollisions = true,
+            Position = [position.X, position.Y, position.Z],
+            Radius = radius
+        };
+        _serverChannel.SendPacket(packet, _projectileOwners[projectileId]);
+    }
 
     private void HandlePacket(IPlayer player, ProjectileCollisionsPacket packet)
     {
@@ -157,11 +195,11 @@ public sealed class ProjectileCollisionsSynchroniserClient : ProjectileCollision
 {
     public ProjectileCollisionsSynchroniserClient(ICoreClientAPI api)
     {
-        _api = api;
+        _collisionTestersManager = new(api);
         _clientChannel = api.Network.RegisterChannel("ProjectileCollisionsSynchroniserClient")
             .RegisterMessageType<ProjectileCollisionsPacket>()
-            .RegisterMessageType<ProjectileEnableCollisionsPacket>()
-            .SetMessageHandler<ProjectileEnableCollisionsPacket>(HandlePacket);
+            .RegisterMessageType<ProjectileUpdateCollisionsPacket>()
+            .SetMessageHandler<ProjectileUpdateCollisionsPacket>(HandlePacket);
     }
 
     public void SendCollisions(long projectileEntityId, Dictionary<Entity, EntityWithSphereIntersectionData[]> entityCollisions, List<TerrainWithShpereIntersectionData> terrainCollisions)
@@ -179,26 +217,20 @@ public sealed class ProjectileCollisionsSynchroniserClient : ProjectileCollision
 
 
     private readonly IClientNetworkChannel _clientChannel;
-    private readonly ICoreClientAPI _api;
+    private readonly ProjectileCollisionTestersManagerClient _collisionTestersManager;
 
 
-    private void HandlePacket(ProjectileEnableCollisionsPacket packet)
+    private void HandlePacket(ProjectileUpdateCollisionsPacket packet)
     {
-        Entity? projectile = _api.World.GetEntityById(packet.ProjectileEntityId);
-        if (projectile == null)
+        if (packet.EnableCollisions)
         {
-            LoggerUtil.Warn(_api, this, $"Was not able to find entity by supplied entity id '{packet.ProjectileEntityId}' when trying to enable/disable collisions for it");
-            return;
+            Vector3d position = new(packet.Position[0], packet.Position[1], packet.Position[2]);
+            _collisionTestersManager.QueueUpdate(packet.ProjectileEntityId, packet.TimeStamp, position, packet.Radius);
         }
-
-        ProjectileColliderClientBehavior? colliderBehavior = projectile.GetBehavior<ProjectileColliderClientBehavior>();
-        if (colliderBehavior == null)
+        else
         {
-            LoggerUtil.Warn(_api, this, $"Trying to enable/disable collisions for projectile, but projectile '{projectile.Code}' does not have 'ProjectileColliderClientBehavior'");
-            return;
+            _collisionTestersManager.StopTester(packet.ProjectileEntityId);
         }
-
-        colliderBehavior.EnableCollisions = packet.EnableCollisions;
     }
 
     private static ProjectileEntityCollisionPacketData GenerateEntityCollisionData(EntityWithSphereIntersectionData collision)
