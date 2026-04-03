@@ -25,11 +25,24 @@ public abstract class ProjectileCollisionsSynchroniser
         public long ProjectileEntityId { get; set; }
         public long TimeStamp { get; set; }
         public bool EnableCollisions { get; set; }
-        public double[] Position { get; set; } = [];
+        public double PositionX { get; set; }
+        public double PositionY { get; set; }
+        public double PositionZ { get; set; }
         public float Radius { get; set; }
     }
 
+    [ProtoContract(ImplicitFields = ImplicitFields.AllPublic)]
+    public class ProjectileResetCollisionsPacket
+    {
+        public long ProjectileEntityId { get; set; }
+        public long TimeStamp { get; set; }
+        public double PositionX { get; set; }
+        public double PositionY { get; set; }
+        public double PositionZ { get; set; }
+        public float Radius { get; set; }
+    }
 
+    [ProtoContract(ImplicitFields = ImplicitFields.AllPublic)]
     public struct ProjectileEntityCollisionPacketData
     {
         public string ColliderElementName { get; set; }
@@ -39,6 +52,7 @@ public abstract class ProjectileCollisionsSynchroniser
         public double PositionInTime { get; set; }
     }
 
+    [ProtoContract(ImplicitFields = ImplicitFields.AllPublic)]
     public struct ProjectileTerrainCollisionPacketData
     {
         public int BlockId { get; set; }
@@ -66,6 +80,7 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
         _serverChannel = api.Network.RegisterChannel("ProjectileCollisionsSynchroniserClient")
             .RegisterMessageType<ProjectileCollisionsPacket>()
             .RegisterMessageType<ProjectileUpdateCollisionsPacket>()
+            .RegisterMessageType<ProjectileResetCollisionsPacket>()
             .SetMessageHandler<ProjectileCollisionsPacket>(HandlePacket);
     }
 
@@ -75,22 +90,52 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
         
         if (enable)
         {
-            _collisionTestersManager.StartUpdates(projectile, radius);
             _projectileOwners[projectileId] = projectileOwner;
+            _collisionTestersManager.StartUpdates(projectile, radius);
         }
         else
         {
-            _collisionTestersManager.StopUpdates(projectileId);
-            ProjectileUpdateCollisionsPacket packet = new()
-            {
-                ProjectileEntityId = projectileId,
-                EnableCollisions = false
-            };
-            _serverChannel.SendPacket(packet, _projectileOwners[projectileId]);
-            _projectileOwners.Remove(projectileId);
+            TurnOffProjectileCollisions(projectile);
         }
     }
 
+    public void TurnOffProjectileCollisions(Entity projectile)
+    {
+        long projectileId = projectile.EntityId;
+        TurnOffProjectileCollisions(projectileId);
+    }
+
+    public void TurnOffProjectileCollisions(long projectileId)
+    {
+        if (!_projectileOwners.TryGetValue(projectileId, out IServerPlayer? owner))
+        {
+            return;
+        }
+
+        _collisionTestersManager.StopUpdates(projectileId);
+        ProjectileUpdateCollisionsPacket packet = new()
+        {
+            ProjectileEntityId = projectileId,
+            EnableCollisions = false
+        };
+        _serverChannel.SendPacket(packet, owner);
+        _projectileOwners.Remove(projectileId);
+    }
+
+    public void ResetPosition(long projectileId, Vector3d position, float radius)
+    {
+        long timeStamp = _api.World.ElapsedMilliseconds;
+        ProjectileResetCollisionsPacket packet = new()
+        {
+            ProjectileEntityId = projectileId,
+            TimeStamp = timeStamp,
+            PositionX = position.X,
+            PositionY = position.Y,
+            PositionZ = position.Z,
+            Radius = radius
+        };
+        _serverChannel.SendPacket(packet, _projectileOwners[projectileId]);
+    }
 
 
     private readonly IServerNetworkChannel _serverChannel;
@@ -106,7 +151,9 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
             ProjectileEntityId = projectileId,
             TimeStamp = timeStamp,
             EnableCollisions = true,
-            Position = [position.X, position.Y, position.Z],
+            PositionX = position.X,
+            PositionY = position.Y,
+            PositionZ = position.Z,
             Radius = radius
         };
         _serverChannel.SendPacket(packet, _projectileOwners[projectileId]);
@@ -117,7 +164,8 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
         Entity? projectile = _api.World.GetEntityById(packet.ProjectileEntityId);
         if (projectile == null)
         {
-            LoggerUtil.Warn(_api, this, $"Was not able to find entity by supplied entity id '{packet.ProjectileEntityId}' when receiving collisions data");
+            LoggerUtil.Dev(_api, this, $"Was not able to find entity by supplied entity id '{packet.ProjectileEntityId}' when receiving collisions data");
+            TurnOffProjectileCollisions(packet.ProjectileEntityId);
             return;
         }
 
@@ -184,7 +232,7 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
             block,
             facing,
             new(collision.NormalX, collision.NormalY, collision.NormalZ),
-            new(collision.IntersectionPointX, collision.IntersectionPointY, collision.IntersectionPointY),
+            new(collision.IntersectionPointX, collision.IntersectionPointY, collision.IntersectionPointZ),
             new(collision.BlockPositionX, collision.BlockPositionY, collision.BlockPositionZ),
             collision.PositionInTime);
     }
@@ -199,7 +247,9 @@ public sealed class ProjectileCollisionsSynchroniserClient : ProjectileCollision
         _clientChannel = api.Network.RegisterChannel("ProjectileCollisionsSynchroniserClient")
             .RegisterMessageType<ProjectileCollisionsPacket>()
             .RegisterMessageType<ProjectileUpdateCollisionsPacket>()
-            .SetMessageHandler<ProjectileUpdateCollisionsPacket>(HandlePacket);
+            .RegisterMessageType<ProjectileResetCollisionsPacket>()
+            .SetMessageHandler<ProjectileUpdateCollisionsPacket>(HandlePacket)
+            .SetMessageHandler<ProjectileResetCollisionsPacket>(HandlePacket);
     }
 
     public void SendCollisions(long projectileEntityId, Dictionary<Entity, EntityWithSphereIntersectionData[]> entityCollisions, List<TerrainWithShpereIntersectionData> terrainCollisions)
@@ -224,13 +274,19 @@ public sealed class ProjectileCollisionsSynchroniserClient : ProjectileCollision
     {
         if (packet.EnableCollisions)
         {
-            Vector3d position = new(packet.Position[0], packet.Position[1], packet.Position[2]);
+            Vector3d position = new(packet.PositionX, packet.PositionY, packet.PositionZ);
             _collisionTestersManager.QueueUpdate(packet.ProjectileEntityId, packet.TimeStamp, position, packet.Radius);
         }
         else
         {
             _collisionTestersManager.StopTester(packet.ProjectileEntityId);
         }
+    }
+
+    private void HandlePacket(ProjectileResetCollisionsPacket packet)
+    {
+        Vector3d position = new(packet.PositionX, packet.PositionY, packet.PositionZ);
+        _collisionTestersManager.QueueUpdate(packet.ProjectileEntityId, packet.TimeStamp, position, packet.Radius, reset: true);
     }
 
     private static ProjectileEntityCollisionPacketData GenerateEntityCollisionData(EntityWithSphereIntersectionData collision)

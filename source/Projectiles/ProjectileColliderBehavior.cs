@@ -1,4 +1,6 @@
-﻿using Vintagestory.API.Common.Entities;
+﻿using OpenTK.Mathematics;
+using Vintagestory.API.Common;
+using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 
@@ -38,6 +40,16 @@ public class ProjectileColliderServerBehavior : EntityBehavior
     public void ToggleCollisions(IServerPlayer owner, bool enable)
     {
         CollisionsSycnronizer.ToggleProjectileCollisions(owner, entity, enable, Config.Radius);
+    }
+
+    public void ResetCollisionsPosition(Vector3d position)
+    {
+        CollisionsSycnronizer.ResetPosition(entity.EntityId, position, Config.Radius);
+    }
+
+    public override void OnEntityDeath(DamageSource damageSourceForDeath)
+    {
+        CollisionsSycnronizer.TurnOffProjectileCollisions(entity);
     }
 
     public override string PropertyName() => "ProjectileColliderBehavior";

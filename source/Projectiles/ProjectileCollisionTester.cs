@@ -1,4 +1,5 @@
 ﻿using OpenTK.Mathematics;
+using System.Diagnostics;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common.Entities;
 
@@ -11,7 +12,7 @@ public class ProjectileCollisionTester
         CollisionsSycnronizer = api.ModLoader.GetModSystem<CollidersLibSystem>().ProjectileCollisionsSynchroniserClient ?? throw new InvalidOperationException($"Unable to get ProjectileCollisionsSynchroniserServer while intantiating ProjectileColliderServerBehavior");
         EntityId = entityId;
         Collider.Radius = radius;
-        UpdateCollider(position);
+        UpdateCollider(position, reset: true);
     }
 
 
@@ -22,9 +23,9 @@ public class ProjectileCollisionTester
     public event Action<Dictionary<Entity, EntityWithSphereIntersectionData[]>, List<TerrainWithShpereIntersectionData>>? OnCollision;
 
 
-    public void OnGameTick(ICoreClientAPI api, Vector3d position)
+    public void OnGameTick(ICoreClientAPI api, Vector3d position, bool reset = false)
     {
-        UpdateCollider(position);
+        UpdateCollider(position, reset);
 
         Collider.CollideWithTerrain(api, out List<TerrainWithShpereIntersectionData> terrainCollisions);
 
@@ -32,6 +33,11 @@ public class ProjectileCollisionTester
         HashSet<Entity> targets = GetSurroundingEntities(api);
         foreach (Entity target in targets)
         {
+            if (target.EntityId == EntityId)
+            {
+                continue;
+            }
+            
             CollidersEntityBehavior? targetColliders = target.GetBehavior<CollidersEntityBehavior>();
             if (Collider.CollideWithEntity(target, targetColliders, out List<EntityWithSphereIntersectionData> entityCollisions))
             {
@@ -50,9 +56,10 @@ public class ProjectileCollisionTester
 
     protected readonly ProjectileCollisionsSynchroniserClient CollisionsSycnronizer;
 
-    protected void UpdateCollider(Vector3d position)
+
+    protected void UpdateCollider(Vector3d position, bool reset = false)
     {
-        Collider.PreviousPosition = Collider.Position;
+        Collider.PreviousPosition = reset ? position : Collider.Position;
         Collider.Position = position;
     }
 

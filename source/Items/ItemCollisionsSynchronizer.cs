@@ -193,7 +193,7 @@ public sealed class ItemCollisionsSynchroniserServer : ItemCollisionsSynchronise
             block,
             facing,
             new(collision.NormalX, collision.NormalY, collision.NormalZ),
-            new(collision.IntersectionPointX, collision.IntersectionPointY, collision.IntersectionPointY),
+            new(collision.IntersectionPointX, collision.IntersectionPointY, collision.IntersectionPointZ),
             new(collision.BlockPositionX, collision.BlockPositionY, collision.BlockPositionZ),
             collision.PositionOnCollider,
             collision.PositionInTime,

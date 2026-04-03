@@ -21,6 +21,11 @@ public readonly struct CuboidAABBCollider
         Min = new(Math.Min(cuboid.X1, cuboid.X2), Math.Min(cuboid.Y1, cuboid.Y2), Math.Min(cuboid.Z1, cuboid.Z2));
         Max = new(Math.Max(cuboid.X1, cuboid.X2), Math.Max(cuboid.Y1, cuboid.Y2), Math.Max(cuboid.Z1, cuboid.Z2));
     }
+    public CuboidAABBCollider(Cuboidf cuboid, BlockPos position)
+    {
+        Min = new(Math.Min(cuboid.X1 + position.X, cuboid.X2 + position.X), Math.Min(cuboid.Y1 + position.Y, cuboid.Y2 + position.Y), Math.Min(cuboid.Z1 + position.Z, cuboid.Z2 + position.Z));
+        Max = new(Math.Max(cuboid.X1 + position.X, cuboid.X2 + position.X), Math.Max(cuboid.Y1 + position.Y, cuboid.Y2 + position.Y), Math.Max(cuboid.Z1 + position.Z, cuboid.Z2 + position.Z));
+    }
     public CuboidAABBCollider(Entity entity)
     {
         Cuboidf collisionBox = entity.CollisionBox;

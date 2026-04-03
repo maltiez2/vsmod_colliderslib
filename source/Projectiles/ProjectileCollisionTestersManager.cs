@@ -3,6 +3,7 @@ using OpenTK.Mathematics;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Server;
+using Vintagestory.GameContent;
 
 namespace CollidersLib.Projectiles;
 
@@ -19,6 +20,7 @@ public sealed class ProjectileCollisionTestersManagerServer
     {
         _projectiles.Add(projectile);
         _radiuses.Add(projectile.EntityId, radius);
+        SendUpdate(projectile);
     }
 
     public void StopUpdates(long projectileId)
@@ -38,12 +40,26 @@ public sealed class ProjectileCollisionTestersManagerServer
 
     private void SendUpdates(float deltaTime)
     {
-        long timeStamp = _api.World.ElapsedMilliseconds;
+        long[] belowMapEntities = _projectiles
+            .Where(entity => entity.Pos.Y < 0)
+            .Select(entity => entity.EntityId)
+            .ToArray();
+
+        foreach (long entityId in belowMapEntities)
+        {
+            StopUpdates(entityId);
+        }
+
         foreach (Entity entity in _projectiles)
         {
-            Vector3d position = entity.Pos.XYZ.ToOpenTK();
-            _sendUpdateCallback.Invoke(entity.EntityId, timeStamp, position, _radiuses[entity.EntityId]);
+            SendUpdate(entity);
         }
+    }
+    private void SendUpdate(Entity entity)
+    {
+        long timeStamp = _api.World.ElapsedMilliseconds;
+        Vector3d position = entity.Pos.XYZ.ToOpenTK();
+        _sendUpdateCallback.Invoke(entity.EntityId, timeStamp, position, _radiuses[entity.EntityId]);
     }
 }
 
@@ -55,7 +71,7 @@ public sealed class ProjectileCollisionTestersManagerClient
         _api.World.RegisterGameTickListener(ProcessUpdates, 0, 0);
     }
 
-    public void QueueUpdate(long projectileId, long timeStamp, Vector3d position, float radius)
+    public void QueueUpdate(long projectileId, long timeStamp, Vector3d position, float radius, bool reset = false)
     {
         if (!_testers.ContainsKey(projectileId))
         {
@@ -64,7 +80,12 @@ public sealed class ProjectileCollisionTestersManagerClient
             _lastProcessedTimeStamps.Add(projectileId, timeStamp);
         }
 
-        _updateQueues[projectileId].Enqueue(new(timeStamp, position));
+        if (reset)
+        {
+            _updateQueues[projectileId].Clear();
+        }
+
+        _updateQueues[projectileId].Enqueue(new(timeStamp, position, reset));
     }
 
     public void StopTester(long projectileId)
@@ -79,11 +100,13 @@ public sealed class ProjectileCollisionTestersManagerClient
     {
         public readonly long TimeStamp;
         public readonly Vector3d Position;
+        public readonly bool Reset;
 
-        public CollisionUpdateData(long timeStamp, Vector3d position)
+        public CollisionUpdateData(long timeStamp, Vector3d position, bool reset = false)
         {
             TimeStamp = timeStamp;
             Position = position;
+            Reset = reset;
         }
     }
 
@@ -116,7 +139,7 @@ public sealed class ProjectileCollisionTestersManagerClient
                 continue;
             }
 
-            tester.OnGameTick(_api, updateData.Position);
+            tester.OnGameTick(_api, updateData.Position, updateData.Reset);
             lastProcessedTimeStamp = updateData.TimeStamp;
             _lastProcessedTimeStamps[projectileId] = lastProcessedTimeStamp;
         }
