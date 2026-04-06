@@ -1,5 +1,7 @@
 ﻿using Cairo;
+using Microsoft.VisualBasic;
 using OpenTK.Mathematics;
+using System.Diagnostics;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
@@ -8,53 +10,26 @@ namespace CollidersLib;
 
 public readonly struct EntityWithCapsuleIntersectionData
 {
-    /// <summary>
-    /// Entity shape elements collider if it has any
-    /// </summary>
     public readonly ShapeElementCollider? EntityCollider;
-    /// <summary>
-    /// Intersection point in world coordinates between entity collider and capsule collider
-    /// </summary>
     public readonly Vector3d IntersectionPoint;
-    /// <summary>
-    /// How far on collider intersection is.<br/>
-    /// From 0 to 1, where 0 is the start of the collider.
-    /// </summary>
-    public readonly double PositionOnCollider;
-    /// <summary>
-    /// Intersection is done between previous and current positions. This number represents lerp paramerter between the two, where 0 is previous position and 1 is current one.
-    /// </summary>
-    public readonly double PositionInTime;
+    public readonly double DistanceFromTail;
+    public readonly int Subdivision;
+    public readonly int TotalSubdivisions;
 
-    /// <summary>
-    /// Combined PositionOnCollider and PositionInTime normilized back to [0, 1].<br/>
-    /// Is meant to be used for fidning earliest and closest intersection.
-    /// </summary>
-    public double NormalizedPosition => Math.Clamp((PositionInTime * 10.0 + PositionOnCollider) / 11.0, 0, 1);
-
-    public EntityWithCapsuleIntersectionData(ShapeElementCollider? collider, Vector3d point, double positionOnCollider, double positionInTime)
+    public EntityWithCapsuleIntersectionData(ShapeElementCollider? entityCollider, Vector3d intersectionPoint, double distanceFromTail, int subdivision, int totalSubdivisions)
     {
-        EntityCollider = collider;
-        IntersectionPoint = point;
-        PositionOnCollider = positionOnCollider;
-        PositionInTime = positionInTime;
+        EntityCollider = entityCollider;
+        IntersectionPoint = intersectionPoint;
+        DistanceFromTail = distanceFromTail;
+        Subdivision = subdivision;
+        TotalSubdivisions = totalSubdivisions;
     }
 }
 
 public readonly struct EntityWithSphereIntersectionData
 {
-    /// <summary>
-    /// Entity shape elements collider if it has any
-    /// </summary>
     public readonly ShapeElementCollider? EntityCollider;
-    /// <summary>
-    /// Intersection point in world coordinates between entity collider and capsule collider
-    /// </summary>
     public readonly Vector3d IntersectionPoint;
-    /// <summary>
-    /// Intersection is done between previous and current positions. This number represents lerp paramerter between the two, where 0 is previous position and 1 is current one.<br/>
-    /// Current position is moved further by the max size of the entity boudning box. Values higher than one correspont for collisions beyond current position.
-    /// </summary>
     public readonly double PositionInTime;
 
     public EntityWithSphereIntersectionData(ShapeElementCollider? entityCollider, Vector3d intersectionPoint, double positionInTime)
@@ -72,22 +47,20 @@ public readonly struct TerrainWithCapsuleIntersectionData
     public readonly Vector3d Normal;
     public readonly Vector3d IntersectionPoint;
     public readonly Vector3i BlockPosition;
-    public readonly double PositionOnCollider;
-    public readonly double PositionInTime;
-    public readonly int SubdivisionsNumber;
+    public readonly double DistanceFromTail;
+    public readonly int Subdivision;
+    public readonly int TotalSubdivisions;
 
-    public double NormalizedPosition => Math.Clamp((PositionInTime * 10.0 + PositionOnCollider) / 11.0, 0, 1);
-
-    public TerrainWithCapsuleIntersectionData(Block block, BlockFacing facing, Vector3d normal, Vector3d intersectionPoint, Vector3i blockPosition, double positionOnCollider, double positionInTime, int subDivisionsNumber)
+    public TerrainWithCapsuleIntersectionData(Block block, BlockFacing facing, Vector3d normal, Vector3d intersectionPoint, Vector3i blockPosition, double distanceFromTail, int subdivision, int totalSubdivisions)
     {
         Block = block;
         Facing = facing;
         Normal = normal;
         IntersectionPoint = intersectionPoint;
         BlockPosition = blockPosition;
-        PositionOnCollider = positionOnCollider;
-        PositionInTime = positionInTime;
-        SubdivisionsNumber = subDivisionsNumber;
+        DistanceFromTail = distanceFromTail;
+        Subdivision = subdivision;
+        TotalSubdivisions = totalSubdivisions;
     }
 }
 
@@ -135,7 +108,7 @@ public static class CollisionSolvers
             Vector3d head = startHead + directionHead * subdivisionParameter;
             Vector3d tail = startTail + directionTail * subdivisionParameter;
 
-            CollideWithEntity(target, entityColliders, head, tail, radius, intersections, subdivisionParameter);
+            CollideWithEntity(target, entityColliders, head, tail, radius, intersections, subdivision, subdivisions);
         }
 
         return intersections.Any();
@@ -148,17 +121,14 @@ public static class CollisionSolvers
 
         return intersections.Count != 0;
     }
-    private static void CollideWithEntity(Entity target, CollidersEntityBehavior? collider, Vector3d head, Vector3d tail, float radius, List<EntityWithCapsuleIntersectionData> intersections, float subdivision = 1f)
+    private static void CollideWithEntity(Entity target, CollidersEntityBehavior? collider, Vector3d head, Vector3d tail, float radius, List<EntityWithCapsuleIntersectionData> intersections, int subdivision, int totalSubdivisions)
     {
         if (collider == null || !collider.HasOBBCollider)
         {
             CuboidAABBCollider AABBCollider = new(target);
             if (AABBCollider.IntersectCapsule(head, tail, radius, out Vector3d intersection))
             {
-                Vector3d segmentPoint = intersection - tail;
-                double parameter = GameMath.Clamp(1 - segmentPoint.Length / (head - tail).Length, 0, 1);
-
-                intersections.Add(new(null, intersection, parameter, subdivision));
+                intersections.Add(new(null, intersection, (intersection - tail).Length, subdivision, totalSubdivisions));
             }
 
             return;
@@ -171,12 +141,9 @@ public static class CollisionSolvers
 
         foreach (ShapeElementCollider shapeElementCollider in collider.Colliders)
         {
-            if (shapeElementCollider.Collide(head, tail, radius, out double currentDistance, out Vector3d currentIntersection, out Vector3d segmentClosestPoint))
+            if (shapeElementCollider.Collide(tail, head, radius, out _, out Vector3d intersection, out _))
             {
-                Vector3d segmentPoint = segmentClosestPoint - tail;
-                double parameter = GameMath.Clamp(1 - (segmentPoint.Length + currentDistance) / (head - tail).Length, 0, 1);
-
-                intersections.Add(new(shapeElementCollider, currentIntersection, parameter, subdivision));
+                intersections.Add(new(shapeElementCollider, intersection, (intersection - head).Length, subdivision, totalSubdivisions));
             }
         }
     }
@@ -188,7 +155,7 @@ public static class CollisionSolvers
             if (AABBCollider.IntersectCapsule(head, tail, radius, out Vector3d intersection))
             {
                 Vector3d segmentPoint = intersection - tail;
-                double parameter = GameMath.Clamp(1 - segmentPoint.Length / (head - tail).Length, 0, 1);
+                double parameter = GameMath.Clamp(segmentPoint.Length / (head - tail).Length, 0, 1);
 
                 intersections.Add(new(null, intersection, parameter));
             }
@@ -220,8 +187,8 @@ public static class CollisionSolvers
     {
         Vector3d previousTickDirection = collider.PreviousInWorldCollider.Direction;
         Vector3d previousTickStart = collider.PreviousInWorldCollider.Position;
-        Vector3d thisTickStart = collider.InWorldCollider.Position;
         Vector3d thisTickDirection = collider.InWorldCollider.Direction;
+        Vector3d thisTickStart = collider.InWorldCollider.Position;      
         Vector3d startHead = previousTickStart;
         Vector3d startTail = previousTickStart + previousTickDirection;
         Vector3d directionHead = thisTickStart - startHead;
@@ -238,7 +205,7 @@ public static class CollisionSolvers
             Vector3d head = startHead + directionHead * subdivisionParameter;
             Vector3d tail = startTail + directionTail * subdivisionParameter;
 
-            CollideWithTerrain(head, tail, radius, api, intersections, subdivisionParameter, subdivisions);
+            CollideWithTerrain(head, tail, radius, api, intersections, subdivision, subdivisions);
         }
 
         return intersections.Any();
@@ -251,7 +218,7 @@ public static class CollisionSolvers
 
         return intersections.Count != 0;
     }
-    private static void CollideWithTerrain(Vector3d head, Vector3d tail, float radius, ICoreAPI api, List<TerrainWithCapsuleIntersectionData> intersections, float subdivision = 1f, int subsivisionsNumber = 1)
+    private static void CollideWithTerrain(Vector3d head, Vector3d tail, float radius, ICoreAPI api, List<TerrainWithCapsuleIntersectionData> intersections, int subdivision, int totalSubdivisions)
     {
         int minX = (int)Math.Min(head.X, tail.X);
         int minY = (int)Math.Min(head.Y, tail.Y);
@@ -267,7 +234,7 @@ public static class CollisionSolvers
             {
                 for (int z = minZ; z <= maxZ; z++)
                 {
-                    CollideWithBlock(head, tail, radius, api.World.BlockAccessor, x, y, z, intersections, subdivision, subsivisionsNumber);
+                    CollideWithBlock(head, tail, radius, api.World.BlockAccessor, x, y, z, intersections, subdivision, totalSubdivisions);
                 }
             }
         }
@@ -295,7 +262,7 @@ public static class CollisionSolvers
             }
         }
     }
-    private static void CollideWithBlock(Vector3d head, Vector3d tail, float radius, IBlockAccessor blockAccessor, int x, int y, int z, List<TerrainWithCapsuleIntersectionData> intersections, float subdivision = 1f, int subdivisionsNumber = 1)
+    private static void CollideWithBlock(Vector3d head, Vector3d tail, float radius, IBlockAccessor blockAccessor, int x, int y, int z, List<TerrainWithCapsuleIntersectionData> intersections, int subdivision, int totalSubdivisions)
     {
         BlockPos position = new(x, y, z, 0);
         Block block = blockAccessor.GetBlock(position, BlockLayersAccess.MostSolid);
@@ -311,9 +278,8 @@ public static class CollisionSolvers
         {
             CuboidAABBCollider blockCollider = new(collisionBox, position);
 
-            if (blockCollider.IntersectCapsule(head, tail, radius, out Vector3d intersectionPoint))
+            if (blockCollider.IntersectCapsule(tail, head, radius, out Vector3d intersectionPoint))
             {
-                double positionOnCollider = (intersectionPoint - tail).Length;
                 BlockFacing facing = blockCollider.GetFacing(intersectionPoint - blockCollider.Center, out Vector3d normal);
 
                 intersections.Add(new(
@@ -322,9 +288,9 @@ public static class CollisionSolvers
                     normal,
                     intersectionPoint,
                     new(x, y, z),
-                    positionOnCollider,
+                    (intersectionPoint - head).Length,
                     subdivision,
-                    subdivisionsNumber));
+                    totalSubdivisions));
             }
         }
     }

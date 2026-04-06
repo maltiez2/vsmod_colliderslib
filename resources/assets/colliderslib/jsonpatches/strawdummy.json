@@ -4,6 +4,6 @@
     "file": "game:entities/nonliving/strawdummy",
     "op": "add",
     "path": "/@@*/behaviors/-",
-    "value": {"code": "CollidersLib:EntityColliders", "elements": {"Torso": ["upper body", "body"], "Head": ["Head"], "Arm": ["hands"], "Leg": [], "Critical": []}}
+    "value": {"code": "CollidersLib:EntityColliders", "elements": {"Torso": ["upper body", "body"], "Head": ["Head"], "Limbs": ["hands"], "Critical": []}}
   }
 ]

@@ -34,8 +34,9 @@ public abstract class ItemCollisionsSynchroniser
         public double IntersectionPointX { get; set; }
         public double IntersectionPointY { get; set; }
         public double IntersectionPointZ { get; set; }
-        public double PositionOnCollider { get; set; }
-        public double PositionInTime { get; set; }
+        public double DistanceFromTail { get; set; }
+        public int Subdivision { get; set; }
+        public int TotalSubdivisions { get; set; }
     }
 
     public struct ItemTerrainCollisionPacketData
@@ -51,9 +52,9 @@ public abstract class ItemCollisionsSynchroniser
         public int BlockPositionX { get; set; }
         public int BlockPositionY { get; set; }
         public int BlockPositionZ { get; set; }
-        public double PositionOnCollider { get; set; }
-        public double PositionInTime { get; set; }
-        public int SubdivisionsNumber { get; set; }
+        public double DistanceFromTail { get; set; }
+        public int Subdivision { get; set; }
+        public int TotalSubdivisions { get; set; }
     }
 }
 
@@ -165,7 +166,7 @@ public sealed class ItemCollisionsSynchroniserServer : ItemCollisionsSynchronise
             collider = targetColliders.Colliders.Find(element => element.ShapeElementName == collision.ColliderElementName);
         }
 
-        return new(collider, new(collision.IntersectionPointX, collision.IntersectionPointY, collision.IntersectionPointZ), collision.PositionOnCollider, collision.PositionInTime);
+        return new(collider, new(collision.IntersectionPointX, collision.IntersectionPointY, collision.IntersectionPointZ), collision.DistanceFromTail, collision.Subdivision, collision.TotalSubdivisions);
     }
 
     private static TerrainWithCapsuleIntersectionData GenerateTerrainCollisionData(ICoreAPI api, ItemTerrainCollisionPacketData collision)
@@ -195,9 +196,9 @@ public sealed class ItemCollisionsSynchroniserServer : ItemCollisionsSynchronise
             new(collision.NormalX, collision.NormalY, collision.NormalZ),
             new(collision.IntersectionPointX, collision.IntersectionPointY, collision.IntersectionPointZ),
             new(collision.BlockPositionX, collision.BlockPositionY, collision.BlockPositionZ),
-            collision.PositionOnCollider,
-            collision.PositionInTime,
-            collision.SubdivisionsNumber);
+            collision.DistanceFromTail,
+            collision.Subdivision,
+            collision.TotalSubdivisions);
     }
 }
 
@@ -275,8 +276,9 @@ public sealed class ItemCollisionsSynchroniserClient : ItemCollisionsSynchronise
             IntersectionPointX = collision.IntersectionPoint.X,
             IntersectionPointY = collision.IntersectionPoint.Y,
             IntersectionPointZ = collision.IntersectionPoint.Z,
-            PositionOnCollider = collision.PositionOnCollider,
-            PositionInTime = collision.PositionInTime
+            DistanceFromTail = collision.DistanceFromTail,
+            Subdivision = collision.Subdivision,
+            TotalSubdivisions = collision.TotalSubdivisions
         };
     }
 
@@ -295,9 +297,9 @@ public sealed class ItemCollisionsSynchroniserClient : ItemCollisionsSynchronise
             BlockPositionX = collision.BlockPosition.X,
             BlockPositionY = collision.BlockPosition.Y,
             BlockPositionZ = collision.BlockPosition.Z,
-            PositionOnCollider = collision.PositionOnCollider,
-            PositionInTime = collision.PositionInTime,
-            SubdivisionsNumber = collision.SubdivisionsNumber
+            DistanceFromTail = collision.DistanceFromTail,
+            Subdivision = collision.Subdivision,
+            TotalSubdivisions = collision.TotalSubdivisions
         };
     }
 }

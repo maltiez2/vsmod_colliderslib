@@ -1,4 +1,5 @@
 ﻿using CollidersLib.VectorsUtils;
+using HarmonyLib;
 using Newtonsoft.Json.Linq;
 using OpenTK.Mathematics;
 using System.Collections.Immutable;
@@ -11,25 +12,45 @@ using Vintagestory.API.Util;
 namespace CollidersLib.Items;
 
 
-public readonly struct ColliderItemCollisionData(int colliderIndex, Dictionary<Entity, EntityWithCapsuleIntersectionData[]> entityCollisions, List<TerrainWithCapsuleIntersectionData> terrainCollisions)
+public readonly struct ColliderItemCollisionData
 {
-    public readonly int ColliderIndex = colliderIndex;
-    public readonly IImmutableDictionary<Entity, EntityWithCapsuleIntersectionData[]> EntityCollisions = entityCollisions.ToImmutableDictionary();
-    public readonly IImmutableList<TerrainWithCapsuleIntersectionData> TerrainCollisions = terrainCollisions.ToImmutableList();
+    public readonly int ColliderIndex;
+    public readonly IImmutableDictionary<Entity, EntityWithCapsuleIntersectionData[]> EntityCollisions;
+    public readonly IImmutableList<TerrainWithCapsuleIntersectionData> TerrainCollisions;
+
+    public ColliderItemCollisionData(int colliderIndex, Dictionary<Entity, EntityWithCapsuleIntersectionData[]> entityCollisions, List<TerrainWithCapsuleIntersectionData> terrainCollisions)
+    {
+        ColliderIndex = colliderIndex;
+        EntityCollisions = entityCollisions.ToImmutableDictionary();
+        TerrainCollisions = terrainCollisions.ToImmutableList();
+    }
 }
 
-public readonly struct SingleItemCollisionData(double normalizedPosition, int colliderIndex, Entity? target, EntityWithCapsuleIntersectionData? entityCollision, TerrainWithCapsuleIntersectionData? terrainCollision, bool behindTerrain, double positionInTime, double positionOnCollider, bool behindAttacker)
+public readonly struct SingleItemCollisionData
 {
-    public readonly int ColliderIndex = colliderIndex;
-    public readonly double NormalizedPosition = normalizedPosition;
-    public readonly double PositionInTime = positionInTime;
-    public readonly double PositionOnCollider = positionOnCollider;
-    public readonly bool BehindTerrain = behindTerrain;
-    public readonly bool BehindAttacker = behindAttacker;
-    
-    public readonly Entity? Target = target;
-    public readonly EntityWithCapsuleIntersectionData? EntityCollision = entityCollision;
-    public readonly TerrainWithCapsuleIntersectionData? TerrainCollision = terrainCollision;
+    public readonly int ColliderIndex;
+    public readonly double Priority;
+    public readonly double Subdivision;
+    public readonly double DistanceFromTail;
+    public readonly bool BehindTerrain;
+    public readonly bool BehindAttacker;
+
+    public readonly Entity? Target;
+    public readonly EntityWithCapsuleIntersectionData? EntityCollision;
+    public readonly TerrainWithCapsuleIntersectionData? TerrainCollision;
+
+    public SingleItemCollisionData(int colliderIndex, double priority, double subdivision, double distanceFromTail, bool behindTerrain, bool behindAttacker, Entity? target, EntityWithCapsuleIntersectionData? entityCollision, TerrainWithCapsuleIntersectionData? terrainCollision)
+    {
+        ColliderIndex = colliderIndex;
+        Priority = priority;
+        Subdivision = subdivision;
+        DistanceFromTail = distanceFromTail;
+        BehindTerrain = behindTerrain;
+        BehindAttacker = behindAttacker;
+        Target = target;
+        EntityCollision = entityCollision;
+        TerrainCollision = terrainCollision;
+    }
 }
 
 
@@ -155,7 +176,7 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
     {
         List<SingleItemCollisionData> result = FlattenCollisionsData(player, collisions, collidersInOrder);
 
-        result = result.OrderBy(entry => entry.NormalizedPosition).ToList();
+        result = result.OrderBy(entry => entry.Priority).ToList();
 
         result = CheckIfBehindTerrain(result, ingoreTerrainBehindAttacker);
 
@@ -244,34 +265,60 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
         List<SingleItemCollisionData> result = [];
         foreach (ColliderItemCollisionData collision in collisions)
         {
-            double colliderPriority = collidersInOrder.IndexOf(collision.ColliderIndex) / (double)(collidersInOrder.Length - 1);
+            double colliderPriority = (collidersInOrder.IndexOf(collision.ColliderIndex) + 1) / (double)(collidersInOrder.Length);
 
             foreach ((Entity target, EntityWithCapsuleIntersectionData[] entityCollisions) in collision.EntityCollisions)
             {
                 foreach (EntityWithCapsuleIntersectionData entityCollision in entityCollisions)
                 {
-                    double normalizedPosition = (colliderPriority * 10.0 + entityCollision.NormalizedPosition) / 11.0;
-                    double positionOnCollider = (colliderPriority * 10.0 + entityCollision.PositionOnCollider) / 11.0;
+                    double priority = CalculatePriority(colliderPriority, entityCollision.Subdivision, entityCollision.TotalSubdivisions, entityCollision.DistanceFromTail);
                     double hitProjection = Vector3d.Dot(viewDirection, entityCollision.IntersectionPoint);
                     bool behindAttacker = hitProjection > eyesProjection;
 
-                    SingleItemCollisionData collisionData = new(normalizedPosition, collision.ColliderIndex, target, entityCollision, null, false, entityCollision.PositionInTime, positionOnCollider, behindAttacker);
+                    SingleItemCollisionData collisionData = new(
+                        colliderIndex: collision.ColliderIndex,
+                        priority: priority,
+                        subdivision: entityCollision.Subdivision / (double)entityCollision.TotalSubdivisions,
+                        distanceFromTail: entityCollision.DistanceFromTail,
+                        behindTerrain: false,
+                        behindAttacker: behindAttacker,
+                        target: target,
+                        entityCollision: entityCollision,
+                        terrainCollision: null
+                        );
                     result.Add(collisionData);
                 }
             }
 
             foreach (TerrainWithCapsuleIntersectionData terrainCollision in collision.TerrainCollisions)
             {
-                double normalizedPosition = (colliderPriority * 10.0 + terrainCollision.NormalizedPosition) / 11.0;
-                double positionOnCollider = (colliderPriority * 10.0 + terrainCollision.PositionOnCollider) / 11.0;
+                double priority = CalculatePriority(colliderPriority, terrainCollision.Subdivision, terrainCollision.TotalSubdivisions, terrainCollision.DistanceFromTail);
                 double hitProjection = Vector3d.Dot(viewDirection, terrainCollision.IntersectionPoint);
                 bool behindAttacker = hitProjection > eyesProjection;
 
-                SingleItemCollisionData collisionData = new(normalizedPosition, collision.ColliderIndex, null, null, terrainCollision, false, terrainCollision.PositionInTime, positionOnCollider, behindAttacker);
+                SingleItemCollisionData collisionData = new(
+                    colliderIndex: collision.ColliderIndex,
+                    priority: priority,
+                    subdivision: terrainCollision.Subdivision / (double)terrainCollision.TotalSubdivisions,
+                    distanceFromTail: terrainCollision.DistanceFromTail,
+                    behindTerrain: false,
+                    behindAttacker: behindAttacker,
+                    target: null,
+                    entityCollision: null,
+                    terrainCollision: terrainCollision
+                    );
                 result.Add(collisionData);
             }
         }
         return result;
+    }
+
+    protected virtual double CalculatePriority(double collider, int subDivision, int totalSubdivisions, double distanceFromTail)
+    {
+        double time = ((double)subDivision) / totalSubdivisions;
+        const double step = 1000;
+        
+        return (time * step * step + collider * step + distanceFromTail / step) / (step * step * step);
     }
 
     protected virtual List<SingleItemCollisionData> CheckIfBehindTerrain(List<SingleItemCollisionData> collisions, bool ingoreTerrainBehindAttacker)
@@ -290,17 +337,17 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
                 continue;
             }
 
-            double radiusInTime = 1.0 / collision.TerrainCollision.Value.SubdivisionsNumber / 0.5;
+            double radiusInTime = 0.5 / collision.TerrainCollision.Value.Subdivision;
 
-            terrainCollisions.Add((collision.PositionInTime - radiusInTime, collision.PositionInTime + radiusInTime, collision.PositionOnCollider));
+            terrainCollisions.Add((collision.Subdivision, collision.Subdivision + radiusInTime, collision.DistanceFromTail));
         }
 
         List<SingleItemCollisionData> result = [];
 
         foreach (SingleItemCollisionData collision in collisions)
         {
-            double positionOnCollider = collision.PositionOnCollider;
-            double positionInTime = collision.PositionInTime;
+            double positionOnCollider = collision.DistanceFromTail;
+            double positionInTime = collision.Subdivision;
             bool behindTerrain = false;
 
             foreach ((double from, double to, double distance) in terrainCollisions)
@@ -319,7 +366,19 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
                 break;
             }
 
-            result.Add(new(collision.NormalizedPosition, collision.ColliderIndex, collision.Target, collision.EntityCollision, collision.TerrainCollision, behindTerrain, collision.PositionInTime, collision.PositionOnCollider, collision.BehindAttacker));
+            SingleItemCollisionData collisionData = new(
+                colliderIndex: collision.ColliderIndex,
+                priority: collision.Priority,
+                subdivision: collision.Subdivision,
+                distanceFromTail: collision.DistanceFromTail,
+                behindTerrain: behindTerrain,
+                behindAttacker: collision.BehindAttacker,
+                target: collision.Target,
+                entityCollision: collision.EntityCollision,
+                terrainCollision: collision.TerrainCollision
+                );
+
+            result.Add(collisionData);
         }
 
         return result;
