@@ -1,7 +1,4 @@
-﻿using Cairo;
-using Microsoft.VisualBasic;
-using OpenTK.Mathematics;
-using System.Diagnostics;
+﻿using OpenTK.Mathematics;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
@@ -188,7 +185,7 @@ public static class CollisionSolvers
         Vector3d previousTickDirection = collider.PreviousInWorldCollider.Direction;
         Vector3d previousTickStart = collider.PreviousInWorldCollider.Position;
         Vector3d thisTickDirection = collider.InWorldCollider.Direction;
-        Vector3d thisTickStart = collider.InWorldCollider.Position;      
+        Vector3d thisTickStart = collider.InWorldCollider.Position;
         Vector3d startHead = previousTickStart;
         Vector3d startTail = previousTickStart + previousTickDirection;
         Vector3d directionHead = thisTickStart - startHead;

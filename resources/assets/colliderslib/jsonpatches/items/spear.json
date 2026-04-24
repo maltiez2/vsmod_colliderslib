@@ -1,0 +1,21 @@
+[
+  {
+    "side": "Server",
+    "file": "game:itemtypes/tool/spear",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CollidersLib:ItemCollidersClient",
+      "properties": {"colliders": [{"Position": [-2.5, 0, 0.5], "Direction": [3, 0, 0], "Radius": 0.1}, {"Position": [0.4, 0, 0.5], "Direction": [0.8, 0, 0], "Radius": 0.1}]}
+    }
+  },
+  {
+    "side": "Server",
+    "file": "game:itemtypes/tool/spear",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CollidersLib:ItemCollidersServer"
+    }
+  }
+]

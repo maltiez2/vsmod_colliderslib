@@ -33,6 +33,7 @@ public sealed class CollidersLibSystem : ModSystem
     {
         ProjectileCollisionsSynchroniserClient = new(api);
         ItemCollisionsSynchroniserClient = new(api);
+        _capsuleRenderer = new HeldItemCapsuleRenderer(api);
     }
 
     public override void StartServerSide(ICoreServerAPI api)
@@ -48,7 +49,10 @@ public sealed class CollidersLibSystem : ModSystem
         HarmonyPatches.Unpatch("CollidersLib", _api);
 
         _api = null;
+        _capsuleRenderer?.Dispose();
+        _capsuleRenderer = null;
     }
 
     private ICoreAPI? _api;
+    private HeldItemCapsuleRenderer? _capsuleRenderer;
 }
