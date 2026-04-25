@@ -1,9 +1,11 @@
 ﻿using CollidersLib.Items;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
+using System;
 using System.Runtime.InteropServices;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 
 namespace CollidersLib;
@@ -15,45 +17,36 @@ public class HeldItemCapsuleRenderer : IRenderer
 
     private const int RingSegments = 16;
     private const int LongitudinalLines = 8;
-    private const int HemisphereArcSegments = 8; // per arc, 2 arcs per cap
+    private const int HemisphereArcSegments = 8;
 
-    // Vertices per capsule:
-    // Ring: RingSegments lines * 2 verts
-    // Longitudinal: LongitudinalLines * 2 verts
-    // Each cap: 2 arcs * HemisphereArcSegments lines * 2 verts
-    // Total per capsule: (RingSegments*2 + LongitudinalLines*2)*2 + 2*2*HemisphereArcSegments*2*2
-    // We just preallocate a generous buffer.
     private const int MaxCapsules = 8;
     private const int VertsPerCapsule =
-        RingSegments * 2 * 2                       // two rings
-        + LongitudinalLines * 2                     // longitudinal lines
-        + 2 * 2 * HemisphereArcSegments * 2;        // two caps, two arcs each
+        RingSegments * 2 * 2
+        + LongitudinalLines * 2
+        + 2 * 2 * HemisphereArcSegments * 2;
 
     private const int MaxVerts = MaxCapsules * VertsPerCapsule;
 
     private readonly ICoreClientAPI _api;
     private IShaderProgram? _shader;
 
-    // GPU objects
     private int _vao;
     private int _vbo;
 
-    // CPU-side staging buffer
     private readonly WireframeVertex[] _vertices = new WireframeVertex[MaxVerts];
     private int _vertexCount = 0;
 
+    // Camera origin in double precision – set once per frame before building geometry
+    private Vector3d _cameraOrigin;
+
     private bool _disposed = false;
 
-    // ── Vertex layout matching the shader ──────────────────────────────────────
-    // location 0: vec3  position   (12 bytes)
-    // location 1: vec4  color      (4 bytes, packed as 4 ubytes normalized)
-    // location 2: int   renderFlags(4 bytes)
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct WireframeVertex
     {
-        public float X, Y, Z;       // vertexPositionIn
-        public byte R, G, B, A;     // vertexColor  (normalized)
-        public int RenderFlags;     // renderFlags
+        public float X, Y, Z;
+        public byte R, G, B, A;
+        public int RenderFlags;
 
         public WireframeVertex(float x, float y, float z, byte r, byte g, byte b, byte a)
         {
@@ -65,7 +58,6 @@ public class HeldItemCapsuleRenderer : IRenderer
 
     private const int Stride = 20; // 12 + 4 + 4
 
-    // ── Colors ─────────────────────────────────────────────────────────────────
     private static readonly (byte R, byte G, byte B, byte A) ColorAxis = (255, 220, 0, 255);
     private static readonly (byte R, byte G, byte B, byte A) ColorCapsule = (0, 200, 255, 255);
 
@@ -88,32 +80,32 @@ public class HeldItemCapsuleRenderer : IRenderer
         prog.VertexShader = _api.Shader.NewShader(EnumShaderType.VertexShader);
         prog.FragmentShader = _api.Shader.NewShader(EnumShaderType.FragmentShader);
 
+        // Positions arriving here are already relative to the camera origin
+        // (subtracted in double precision on the CPU), so no origin uniform needed.
         prog.VertexShader.Code = @"
 #version 330 core
 #extension GL_ARB_explicit_attrib_location: enable
 
 layout(location = 0) in vec3 vertexPositionIn;
 layout(location = 1) in vec4 vertexColor;
-layout(location = 2) in int renderFlags;
+layout(location = 2) in int  renderFlags;
 
 uniform mat4 projectionMatrix;
 uniform mat4 modelViewMatrix;
 uniform vec4 colorIn;
-uniform vec3 origin;
 
 out vec4 color;
 
 void main(void)
 {
-    vec4 worldPos = vec4(vertexPositionIn + origin, 1.0);
-    vec4 cameraPos = modelViewMatrix * worldPos;
+    // vertexPositionIn is already camera-relative; no origin offset needed
+    vec4 cameraPos = modelViewMatrix * vec4(vertexPositionIn, 1.0);
 
     color = vertexColor * colorIn;
 
     gl_Position = projectionMatrix * cameraPos;
 
-    // Match vanilla: push vertices slightly closer to camera
-    // so wireframes render on top of geometry
+    // Push vertices slightly toward camera so wireframes render on top
     gl_Position.w += 0.0014 + (renderFlags >> 8) * 0.00025;
 }
 ";
@@ -154,18 +146,14 @@ void main()
         GL.BindVertexArray(_vao);
         GL.BindBuffer(BufferTarget.ArrayBuffer, _vbo);
 
-        // Allocate GPU buffer (dynamic, updated every frame)
         GL.BufferData(BufferTarget.ArrayBuffer, MaxVerts * Stride, IntPtr.Zero, BufferUsageHint.DynamicDraw);
 
-        // location 0 – position (vec3 float)
         GL.EnableVertexAttribArray(0);
         GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, Stride, 0);
 
-        // location 1 – color (vec4 ubyte normalized)
         GL.EnableVertexAttribArray(1);
         GL.VertexAttribPointer(1, 4, VertexAttribPointerType.UnsignedByte, true, Stride, 12);
 
-        // location 2 – renderFlags (int)
         GL.EnableVertexAttribArray(2);
         GL.VertexAttribIPointer(2, 1, VertexAttribIntegerType.Int, Stride, (IntPtr)16);
 
@@ -182,6 +170,14 @@ void main()
         EntityPlayer? player = _api.World.Player?.Entity;
         if (player == null) return;
 
+        // player.CameraPos is the actual eye position in world-space (double precision).
+        // The engine's CameraMatrixOrigin(f) places this point at (0,0,0),
+        // so we must express all vertices relative to it.
+        _cameraOrigin = new Vector3d(
+            player.CameraPos.X,
+            player.CameraPos.Y,
+            player.CameraPos.Z);
+
         _vertexCount = 0;
 
         BuildCollidersForSlot(player, player.RightHandItemSlot, mainHand: true);
@@ -189,7 +185,7 @@ void main()
 
         if (_vertexCount == 0) return;
 
-        UploadAndDraw(player);
+        UploadAndDraw();
     }
 
     // ── Mesh building ──────────────────────────────────────────────────────────
@@ -225,18 +221,14 @@ void main()
 
         GetPerpendicularBasis(axisNorm, out Vector3d basisU, out Vector3d basisV);
 
-        // Central axis
         AddLine(tail, head, ColorAxis);
 
-        // End rings
         AddRing(tail, basisU, basisV, radius, ColorCapsule);
         AddRing(head, basisU, basisV, radius, ColorCapsule);
 
-        // Hemisphere arcs
         AddHemisphereArcs(tail, -axisNorm, basisU, basisV, radius, ColorCapsule);
         AddHemisphereArcs(head, axisNorm, basisU, basisV, radius, ColorCapsule);
 
-        // Longitudinal connecting lines
         AddLongitudinalLines(tail, head, basisU, basisV, radius, ColorCapsule);
     }
 
@@ -256,10 +248,16 @@ void main()
     }
 
     private void AddHemisphereArcs(Vector3d center, Vector3d pole, Vector3d basisU, Vector3d basisV,
-        float radius, (byte R, byte G, byte B, byte A) color)
+    float radius, (byte R, byte G, byte B, byte A) color)
     {
-        AddHemisphereArc(center, pole, basisU, radius, color);
-        AddHemisphereArc(center, pole, basisV, radius, color);
+        // Distribute arcs evenly around the cap
+        int arcCount = LongitudinalLines / 2; // matches the longitudinal line count for visual consistency
+        for (int i = 0; i < arcCount; i++)
+        {
+            double angle = Math.PI * i / arcCount; // half rotation is enough (opposite arc is the same)
+            Vector3d radial = Math.Cos(angle) * basisU + Math.Sin(angle) * basisV;
+            AddHemisphereArc(center, pole, radial, radius, color);
+        }
     }
 
     private void AddHemisphereArc(Vector3d center, Vector3d pole, Vector3d radial, float radius,
@@ -267,11 +265,15 @@ void main()
     {
         for (int i = 0; i < HemisphereArcSegments; i++)
         {
+            // Sweep π from -radial, through pole, to +radial
             double angleA = Math.PI * i / HemisphereArcSegments;
             double angleB = Math.PI * (i + 1) / HemisphereArcSegments;
 
-            Vector3d a = center + radius * (Math.Sin(angleA) * radial + Math.Cos(angleA) * pole);
-            Vector3d b = center + radius * (Math.Sin(angleB) * radial + Math.Cos(angleB) * pole);
+            // At angle=0:   -radial (equator)
+            // At angle=π/2:  pole   (tip)
+            // At angle=π:   +radial (equator)
+            Vector3d a = center + radius * (-Math.Cos(angleA) * radial + Math.Sin(angleA) * pole);
+            Vector3d b = center + radius * (-Math.Cos(angleB) * radial + Math.Sin(angleB) * pole);
 
             AddLine(a, b, color);
         }
@@ -283,38 +285,38 @@ void main()
         for (int i = 0; i < LongitudinalLines; i++)
         {
             double angle = 2.0 * Math.PI * i / LongitudinalLines;
-            Vector3d offset = radius * (Math.Cos(angle) * basisU + Math.Sin(angle) * basisV);
+            Vector3d offs = radius * (Math.Cos(angle) * basisU + Math.Sin(angle) * basisV);
 
-            AddLine(tail + offset, head + offset, color);
+            AddLine(tail + offs, head + offs, color);
         }
     }
 
     // ── Primitive helpers ──────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Subtracts the camera origin in double precision, THEN narrows to float.
+    /// This preserves sub-millimetre accuracy even at world coords ~512 000.
+    /// </summary>
     private void AddLine(Vector3d a, Vector3d b, (byte R, byte G, byte B, byte A) color)
     {
+        // Double-precision subtraction keeps the residual small (~0..tens of metres),
+        // which fits comfortably in a float32 without precision loss.
+        Vector3d ra = a - _cameraOrigin;
+        Vector3d rb = b - _cameraOrigin;
+
         _vertices[_vertexCount++] = new WireframeVertex(
-            (float)a.X, (float)a.Y, (float)a.Z,
+            (float)ra.X, (float)ra.Y, (float)ra.Z,
             color.R, color.G, color.B, color.A);
 
         _vertices[_vertexCount++] = new WireframeVertex(
-            (float)b.X, (float)b.Y, (float)b.Z,
+            (float)rb.X, (float)rb.Y, (float)rb.Z,
             color.R, color.G, color.B, color.A);
     }
 
     // ── Upload & draw ──────────────────────────────────────────────────────────
 
-    private void UploadAndDraw(EntityPlayer player)
+    private void UploadAndDraw()
     {
-        var originVec = player.Pos.XYZFloat;
-
-        for (int i = 0; i < _vertexCount; i++)
-        {
-            _vertices[i].X -= originVec.X;
-            _vertices[i].Y -= originVec.Y;
-            _vertices[i].Z -= originVec.Z;
-        }
-
         GL.BindBuffer(BufferTarget.ArrayBuffer, _vbo);
         GL.BufferSubData(BufferTarget.ArrayBuffer, IntPtr.Zero,
             _vertexCount * Stride, _vertices);
@@ -323,8 +325,8 @@ void main()
         _shader!.Use();
 
         _shader.UniformMatrix("projectionMatrix", _api.Render.CurrentProjectionMatrix);
-        _shader.UniformMatrix("modelViewMatrix", _api.Render.CurrentModelviewMatrix);
-        _shader.Uniform("origin", originVec);
+        // CameraMatrixOriginf has the camera at (0,0,0), matching our vertex origin subtraction
+        _shader.UniformMatrix("modelViewMatrix", _api.Render.CameraMatrixOriginf);
         _shader.Uniform("colorIn", new Vec4f(1f, 1f, 1f, 1f));
 
         GL.BindVertexArray(_vao);
