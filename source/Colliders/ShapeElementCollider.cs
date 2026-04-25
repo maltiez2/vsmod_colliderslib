@@ -35,16 +35,16 @@ public sealed class ShapeElementCollider
 
         double[] transformMatrix = GetTransformMatrix(JointId, transformMatrixAll);
 
-        EntityPos playerPos = api.World.Player.Entity.Pos;
+        Vec3d cameraPos = api.World.Player.Entity.CameraPos;
 
         for (int vertex = 0; vertex < VertexCount; vertex++)
         {
             InworldVertices[vertex] = MultiplyVectorByMatrix(transformMatrix, ElementVertices[vertex]);
             InworldVertices[vertex].W = 1.0f;
             InworldVertices[vertex] = MultiplyVectorByMatrix(Renderer.ModelMat, InworldVertices[vertex]);
-            InworldVertices[vertex].X += playerPos.X;
-            InworldVertices[vertex].Y += playerPos.Y;
-            InworldVertices[vertex].Z += playerPos.Z;
+            InworldVertices[vertex].X += cameraPos.X;
+            InworldVertices[vertex].Y += cameraPos.Y;
+            InworldVertices[vertex].Z += cameraPos.Z;
         }
     }
     public bool Collide(Vector3d head, Vector3d tail, double radius, out double distance, out Vector3d intersection, out Vector3d segmentClosestPoint)
@@ -59,28 +59,6 @@ public sealed class ShapeElementCollider
         distance = Vector3d.Distance(intersection, segmentClosestPoint);
 
         return distance <= radius;
-    }
-    public void Render(ICoreClientAPI api, EntityAgent entityPlayer, int color = ColorUtil.WhiteArgb)
-    {
-        EntityAgent player = api.World.Player.Entity;
-
-        BlockPos playerPos = player.Pos.AsBlockPos;
-        Vec3f deltaPos = 0 - new Vec3f(playerPos.X, playerPos.Y, playerPos.Z);
-
-        RenderLine(api, InworldVertices[0], InworldVertices[1], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[0], InworldVertices[3], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[0], InworldVertices[4], playerPos, deltaPos, color);
-
-        RenderLine(api, InworldVertices[1], InworldVertices[1], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[1], InworldVertices[5], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[2], InworldVertices[6], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[2], InworldVertices[3], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[3], InworldVertices[7], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[4], InworldVertices[7], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[4], InworldVertices[5], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[6], InworldVertices[7], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[6], InworldVertices[5], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[2], InworldVertices[1], playerPos, deltaPos, color);
     }
 
 

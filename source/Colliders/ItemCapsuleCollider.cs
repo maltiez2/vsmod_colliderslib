@@ -38,7 +38,7 @@ public class ItemCapsuleCollider
         }
 
         PreviousInWorldCollider = InWorldCollider;
-        InWorldCollider = RelativeCollider.Transform(modelMatrix, player.Pos);
+        InWorldCollider = RelativeCollider.Transform(modelMatrix, player.CameraPos);
 
         if (resetPreviousCollider)
         {

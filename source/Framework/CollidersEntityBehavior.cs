@@ -137,11 +137,6 @@ public sealed class CollidersEntityBehavior : EntityBehavior
                 collider.Renderer ??= renderer;
                 collider.HasRenderer = true;
             }
-
-            if (RenderColliders)
-            {
-                collider.Render(api, entityPlayer, _colliderColors[collider.ColliderType]);
-            }
         }
 
         currentShader?.Use();
@@ -159,7 +154,7 @@ public sealed class CollidersEntityBehavior : EntityBehavior
         { 5, ColorUtil.ColorFromRgba(255, 0, 255, 255 ) } // Magenta
     };
     private bool _reportedMissingColliders = false;
-    private const int _updateFps = 30;
+    private const int _updateFps = 60;
     private const float _updateTimeSec = 1f / _updateFps;
     private float _timeSinceLastUpdate = 0;
     private bool _subscribed = false;

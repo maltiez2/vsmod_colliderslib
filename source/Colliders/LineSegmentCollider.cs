@@ -30,24 +30,14 @@ public readonly struct LineSegmentCollider
         Direction -= Position;
     }
 
-    public void Render(ICoreClientAPI api, EntityAgent entityPlayer, int color = ColorUtil.WhiteArgb)
-    {
-        BlockPos playerPos = entityPlayer.Pos.AsBlockPos;
-        Vector3d playerPosVector = new(playerPos.X, playerPos.Y, playerPos.Z);
-
-        Vector3d tail = Position - playerPosVector;
-        Vector3d head = Position + Direction - playerPosVector;
-
-        api.Render.RenderLine(playerPos, (float)tail.X, (float)tail.Y, (float)tail.Z, (float)head.X, (float)head.Y, (float)head.Z, color);
-    }
-    public LineSegmentCollider Transform(Matrixf modelMatrix, EntityPos origin)
+    public LineSegmentCollider Transform(Matrixf modelMatrix, Vec3d origin)
     {
         Vector3d tail = TransformVector(Position, modelMatrix, origin);
         Vector3d head = TransformVector(Direction + Position, modelMatrix, origin);
 
         return new LineSegmentCollider(tail, head - tail);
     }
-    public static Vector3d TransformVector(Vector3d value, Matrixf modelMatrix, EntityPos playerPos)
+    public static Vector3d TransformVector(Vector3d value, Matrixf modelMatrix, Vec3d playerPos)
     {
         _inputBufferD.X = value.X;
         _inputBufferD.Y = value.Y;

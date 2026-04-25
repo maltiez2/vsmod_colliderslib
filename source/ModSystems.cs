@@ -1,5 +1,6 @@
-﻿using CollidersLib.Projectiles;
+﻿using CollidersLib.DevTools;
 using CollidersLib.Items;
+using CollidersLib.Projectiles;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
@@ -34,6 +35,7 @@ public sealed class CollidersLibSystem : ModSystem
         ProjectileCollisionsSynchroniserClient = new(api);
         ItemCollisionsSynchroniserClient = new(api);
         _capsuleRenderer = new HeldItemCapsuleRenderer(api);
+        _entityColliderRenderer = new EntityCollidersBoxRenderer(api);
     }
 
     public override void StartServerSide(ICoreServerAPI api)
@@ -50,9 +52,12 @@ public sealed class CollidersLibSystem : ModSystem
 
         _api = null;
         _capsuleRenderer?.Dispose();
+        _entityColliderRenderer?.Dispose();
         _capsuleRenderer = null;
+        _entityColliderRenderer = null;
     }
 
     private ICoreAPI? _api;
     private HeldItemCapsuleRenderer? _capsuleRenderer;
+    private EntityCollidersBoxRenderer? _entityColliderRenderer;
 }
