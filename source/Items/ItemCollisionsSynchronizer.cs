@@ -1,4 +1,4 @@
-﻿using CollidersLib.Utils;
+﻿using OverhaulLib.Utils;
 using ProtoBuf;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -86,21 +86,21 @@ public sealed class ItemCollisionsSynchroniserServer : ItemCollisionsSynchronise
         Item? item = _api.World.GetItem(packet.ItemId);
         if (item == null)
         {
-            LoggerUtil.Warn(_api, this, $"Unable to find item with id {packet.ItemId} when receiving collisions packet");
+            Log.Warn(_api, this, $"Unable to find item with id {packet.ItemId} when receiving collisions packet");
             return;
         }
 
         ItemCollidersBehaviorServer? collidersBehavior = item.GetCollectibleBehavior<ItemCollidersBehaviorServer>(withInheritance: true);
         if (collidersBehavior == null)
         {
-            LoggerUtil.Warn(_api, this, $"Item {item.Code} does not have 'ItemColliderBehaviorServer' behavior");
+            Log.Warn(_api, this, $"Item {item.Code} does not have 'ItemColliderBehaviorServer' behavior");
             return;
         }
 
         ItemSlot slot = packet.MainHand ? player.Entity.RightHandItemSlot : player.Entity.LeftHandItemSlot;
         if (slot.Itemstack?.Item?.Id != packet.ItemId)
         {
-            LoggerUtil.Verbose(_api, this, $"Received collisions for item {item.Code} but it is no longer in the slot");
+            Log.Verbose(_api, this, $"Received collisions for item {item.Code} but it is no longer in the slot");
             return;
         }
 
@@ -136,7 +136,7 @@ public sealed class ItemCollisionsSynchroniserServer : ItemCollisionsSynchronise
                 Entity? target = _api.World.GetEntityById(targetEntityId);
                 if (target == null)
                 {
-                    LoggerUtil.Warn(_api, this, $"Was not able to find target entity by supplied entity id '{targetEntityId}' when receiving collisions data");
+                    Log.Warn(_api, this, $"Was not able to find target entity by supplied entity id '{targetEntityId}' when receiving collisions data");
                     continue;
                 }
 
@@ -175,7 +175,7 @@ public sealed class ItemCollisionsSynchroniserServer : ItemCollisionsSynchronise
         if (block == null)
         {
             string errorMessage = $"Enable to find block with id '{collision.BlockId}' when handling projectile collision packet";
-            LoggerUtil.Error(api, typeof(ItemCollisionsSynchroniserServer), errorMessage);
+            Log.Error(api, typeof(ItemCollisionsSynchroniserServer), errorMessage);
             throw new InvalidDataException(errorMessage);
         }
 
@@ -247,14 +247,14 @@ public sealed class ItemCollisionsSynchroniserClient : ItemCollisionsSynchronise
         Item? item = _api.World.GetItem(packet.ItemId);
         if (item == null)
         {
-            LoggerUtil.Warn(_api, this, $"Unable to find item with id {packet.ItemId} when receiving collision toggle packet");
+            Log.Warn(_api, this, $"Unable to find item with id {packet.ItemId} when receiving collision toggle packet");
             return;
         }
 
         ItemCollidersBehaviorClient? colliderBehavior = item.GetCollectibleBehavior<ItemCollidersBehaviorClient>(withInheritance: true);
         if (colliderBehavior == null)
         {
-            LoggerUtil.Warn(_api, this, $"Item {item.Code} does not have 'ItemColliderBehaviorClient' behavior");
+            Log.Warn(_api, this, $"Item {item.Code} does not have 'ItemColliderBehaviorClient' behavior");
             return;
         }
 

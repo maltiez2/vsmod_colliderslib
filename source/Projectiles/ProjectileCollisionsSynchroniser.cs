@@ -1,5 +1,5 @@
-﻿using CollidersLib.Utils;
-using OpenTK.Mathematics;
+﻿using OpenTK.Mathematics;
+using OverhaulLib.Utils;
 using ProtoBuf;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -164,7 +164,7 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
         Entity? projectile = _api.World.GetEntityById(packet.ProjectileEntityId);
         if (projectile == null)
         {
-            LoggerUtil.Dev(_api, this, $"Was not able to find entity by supplied entity id '{packet.ProjectileEntityId}' when receiving collisions data");
+            Log.Dev(_api, this, $"Was not able to find entity by supplied entity id '{packet.ProjectileEntityId}' when receiving collisions data");
             TurnOffProjectileCollisions(packet.ProjectileEntityId);
             return;
         }
@@ -172,7 +172,7 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
         ProjectileColliderServerBehavior? colliderBehavior = projectile.GetBehavior<ProjectileColliderServerBehavior>();
         if (colliderBehavior == null)
         {
-            LoggerUtil.Warn(_api, this, $"Received collisions data for projectile, but projectile '{projectile.Code}' does not have 'ProjectileColliderServerBehavior'");
+            Log.Warn(_api, this, $"Received collisions data for projectile, but projectile '{projectile.Code}' does not have 'ProjectileColliderServerBehavior'");
             return;
         }
 
@@ -182,7 +182,7 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
             Entity? target = _api.World.GetEntityById(targetEntityId);
             if (target == null)
             {
-                LoggerUtil.Warn(_api, this, $"Was not able to find target entity by supplied entity id '{targetEntityId}' when receiving collisions data");
+                Log.Warn(_api, this, $"Was not able to find target entity by supplied entity id '{targetEntityId}' when receiving collisions data");
                 continue;
             }
 
@@ -213,7 +213,7 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
         if (block == null)
         {
             string errorMessage = $"Enable to find block with id '{collision.BlockId}' when handling projectile collision packet";
-            LoggerUtil.Error(api, typeof(ProjectileCollisionsSynchroniserServer), errorMessage);
+            Log.Error(api, typeof(ProjectileCollisionsSynchroniserServer), errorMessage);
             throw new InvalidDataException(errorMessage);
         }
 

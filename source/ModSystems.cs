@@ -34,8 +34,9 @@ public sealed class CollidersLibSystem : ModSystem
     {
         ProjectileCollisionsSynchroniserClient = new(api);
         ItemCollisionsSynchroniserClient = new(api);
-        _capsuleRenderer = new HeldItemCapsuleRenderer(api);
-        _entityColliderRenderer = new EntityCollidersBoxRenderer(api);
+        _capsuleRenderer = new(api);
+        _entityColliderRenderer = new(api);
+        _itemCapsuleColliderEditor = new(api);
     }
 
     public override void StartServerSide(ICoreServerAPI api)
@@ -60,4 +61,5 @@ public sealed class CollidersLibSystem : ModSystem
     private ICoreAPI? _api;
     private HeldItemCapsuleRenderer? _capsuleRenderer;
     private EntityCollidersBoxRenderer? _entityColliderRenderer;
+    private ItemCapsuleColliderEditor? _itemCapsuleColliderEditor;
 }

@@ -1,4 +1,5 @@
 ﻿using OpenTK.Mathematics;
+using OverhaulLib.Utils;
 using PlayerModelLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -42,7 +43,7 @@ public sealed class CollidersEntityBehavior : EntityBehavior
         {
             if (!attributes.KeyExists("elements"))
             {
-                Utils.LoggerUtil.Error(entity.Api, this, $"Error on parsing behavior properties for entity: {entity.Code}. 'elements' attribute was not found.");
+                Log.Error(entity.Api, this, $"Error on parsing behavior properties for entity: {entity.Code}. 'elements' attribute was not found.");
                 return;
             }
 
@@ -56,7 +57,7 @@ public sealed class CollidersEntityBehavior : EntityBehavior
         }
         catch (Exception exception)
         {
-            Utils.LoggerUtil.Error(entity.Api, this, $"Error on parsing behavior properties for entity: {entity.Code}. Exception:\n{exception}");
+            Log.Error(entity.Api, this, $"Error on parsing behavior properties for entity: {entity.Code}. Exception:\n{exception}");
             UnprocessedElementsLeft = false;
             HasOBBCollider = false;
         }
@@ -98,7 +99,7 @@ public sealed class CollidersEntityBehavior : EntityBehavior
                 if (ShapeElementsToProcess.Any() && !_reportedMissingColliders)
                 {
                     string missingColliders = ShapeElementsToProcess.Keys.Aggregate((first, second) => $"{first}, {second}");
-                    Utils.LoggerUtil.Warn(entity.Api, this, $"({entity.Code}) Listed colliders that were not found in shape: {missingColliders}");
+                    Log.Warn(entity.Api, this, $"({entity.Code}) Listed colliders that were not found in shape: {missingColliders}");
                     _reportedMissingColliders = true;
                 }
             }
@@ -106,7 +107,7 @@ public sealed class CollidersEntityBehavior : EntityBehavior
             {
                 if (_reportedMissingColliders)
                 {
-                    Utils.LoggerUtil.Error(entity.Api, this, $"({entity.Code}) Error during creating colliders: \n{exception}");
+                    Log.Error(entity.Api, this, $"({entity.Code}) Error during creating colliders: \n{exception}");
                     _reportedMissingColliders = true;
                 }
             }
@@ -314,7 +315,7 @@ public sealed class CollidersEntityBehavior : EntityBehavior
             if (ShapeElementsToProcess.Count != 0 && !_reportedMissingColliders)
             {
                 string missingColliders = ShapeElementsToProcess.Select(entry => entry.Key).Aggregate((first, second) => $"{first}, {second}");
-                Utils.LoggerUtil.Warn(entity.Api, this, $"({entity.Code}) Listed colliders that were not found in shape: {missingColliders}");
+                Log.Warn(entity.Api, this, $"({entity.Code}) Listed colliders that were not found in shape: {missingColliders}");
                 _reportedMissingColliders = true;
             }
         }
@@ -322,7 +323,7 @@ public sealed class CollidersEntityBehavior : EntityBehavior
         {
             if (_reportedMissingColliders)
             {
-                Utils.LoggerUtil.Error(entity.Api, this, $"({entity.Code}) Error during creating colliders: \n{exception}");
+                Log.Error(entity.Api, this, $"({entity.Code}) Error during creating colliders: \n{exception}");
                 _reportedMissingColliders = true;
             }
         }

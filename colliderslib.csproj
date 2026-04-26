@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ModName>Colliders lib</ModName>
     <ModType>code</ModType>
-    <ModVersion>0.0.2</ModVersion>
+    <ModVersion>0.1.1</ModVersion>
     <ModId>colliderslib</ModId>
     <Description></Description>
     <Side>universal</Side>
@@ -18,7 +18,9 @@
 
   <!-- Dependencies -->
   <ItemGroup>
-    <Dependencies Include="jsonpatcheslib" Version="1.4.1" />
+    <Dependencies Include="jsonpatcheslib" Version="1.5.1" />
+    <Dependencies Include="overhaullib" Version="2.0.4" />
+    <Dependencies Include="vsimgui" Version="1.2.1" />
   </ItemGroup>
 
   <!-- Project settings -->
@@ -69,6 +71,7 @@
     <AssetsToFormat Include="$(AssetsDir)\$(ModId)\blocktypes" />
     <AssetsToFormat Include="$(AssetsDir)\$(ModId)\itemtypes" />
     <AssetsToFormat Include="$(AssetsDir)\$(ModId)\patches" />
+    <AssetsToFormat Include="$(AssetsDir)\$(ModId)\jsonpatches" />
     <AssetsToFormat Include="$(AssetsDir)\$(ModId)\entities" />
     <AssetsToFormat Include="$(AssetsDir)\$(ModId)\config\animations" />
   </ItemGroup>

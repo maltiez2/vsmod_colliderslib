@@ -23,7 +23,7 @@
     "path": "/@@*/behaviors/-",
     "value": {
       "code": "CollidersLib:EntityColliders",
-      "elements": {"Torso": ["body"], "Head": ["head", "nose"], "Arm": ["R front feet", "L front feet"], "Leg": ["L back feet", "R back feet"], "Critical": [], "Resistant": []}
+      "elements": { "Torso": ["body"], "Head": ["head", "nose"], "Arm": ["R front feet", "L front feet"], "Leg": ["L back feet", "R back feet"], "Critical": [], "Resistant": [] }
     }
   }
 ]

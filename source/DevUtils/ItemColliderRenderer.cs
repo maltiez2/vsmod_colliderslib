@@ -12,11 +12,16 @@ public sealed class HeldItemCapsuleRenderer : IRenderer
 {
     public HeldItemCapsuleRenderer(ICoreClientAPI clientApi) { _clientApi = clientApi; _clientApi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "helditemcapsulerenderer"); _clientApi.Event.ReloadShader += LoadShader; LoadShader(); InitializeGraphicsProcessingUnitObjects(); }
 
+
     public double RenderOrder => 1.0;
     public int RenderRange => int.MaxValue;
 
+    public static bool RenderColliders { get; set; } = false;
+
+
     public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
     {
+        if (!RenderColliders) return;
         if (_shaderProgram == null) return;
         EntityPlayer? player = _clientApi.World.Player?.Entity;
         if (player == null) return;
@@ -39,6 +44,8 @@ public sealed class HeldItemCapsuleRenderer : IRenderer
         _shaderProgram?.Dispose();
     }
 
+
+
     private const int _ringSegments = 16;
     private const int _longitudinalLines = 8;
     private const int _hemisphereArcSegments = 8;
@@ -56,8 +63,9 @@ public sealed class HeldItemCapsuleRenderer : IRenderer
     private Vector3d _cameraOrigin;
     private bool _isDisposed = false;
 
-    private static readonly (byte R, byte G, byte B, byte A) ColorAxis = (255, 220, 0, 255);
-    private static readonly (byte R, byte G, byte B, byte A) ColorCapsule = (0, 200, 255, 255);
+    private static readonly (byte R, byte G, byte B, byte A) _colorAxis = (255, 220, 0, 255);
+    private static readonly (byte R, byte G, byte B, byte A) _colorCapsule = (0, 200, 255, 255);
+
 
     private bool LoadShader()
     {
@@ -125,7 +133,7 @@ void main()
         if (behavior == null) return;
         foreach (ItemCapsuleCollider collider in behavior.Colliders.Values)
         {
-            if (!collider.TransformCollider(player, isMainHand, false)) continue;
+            if (!collider.TransformCollider(player, isMainHand, false, updatePrevious: false)) continue;
             if (_vertexCount + _verticesPerCapsule > _maxVertices) break;
             BuildCapsule(collider.InWorldCollider, collider.Radius);
         }
@@ -139,12 +147,12 @@ void main()
         double axisLength = axis.Length;
         Vector3d axisNormalized = axisLength > 1e-6 ? axis / axisLength : Vector3d.UnitY;
         GetPerpendicularBasis(axisNormalized, out Vector3d basisU, out Vector3d basisV);
-        AddLine(tail, head, ColorAxis);
-        AddRing(tail, basisU, basisV, radius, ColorCapsule);
-        AddRing(head, basisU, basisV, radius, ColorCapsule);
-        AddHemisphereArcs(tail, -axisNormalized, basisU, basisV, radius, ColorCapsule);
-        AddHemisphereArcs(head, axisNormalized, basisU, basisV, radius, ColorCapsule);
-        AddLongitudinalLines(tail, head, basisU, basisV, radius, ColorCapsule);
+        AddLine(tail, head, _colorAxis);
+        AddRing(tail, basisU, basisV, radius, _colorCapsule);
+        AddRing(head, basisU, basisV, radius, _colorCapsule);
+        AddHemisphereArcs(tail, -axisNormalized, basisU, basisV, radius, _colorCapsule);
+        AddHemisphereArcs(head, axisNormalized, basisU, basisV, radius, _colorCapsule);
+        AddLongitudinalLines(tail, head, basisU, basisV, radius, _colorCapsule);
     }
 
     private void AddRing(Vector3d center, Vector3d basisU, Vector3d basisV, float radius, (byte R, byte G, byte B, byte A) color)

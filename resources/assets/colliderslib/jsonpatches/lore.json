@@ -1,4 +1,4 @@
-[
+﻿[
   {
     "target": "drifter",
     "side": "Server",
@@ -50,23 +50,7 @@
           "Arm": [],
           "Leg": ["L Calf", "L Thigh", "R Calf", "R Thigh", "ToeR2", "ToeR3", "ToeR1", "ToeR4"],
           "Critical": ["Neck2", "Neck3"],
-          "Resistant": [
-            "Visor",
-            "Helmet1",
-            "Helmet2",
-            "HelmetL",
-            "HelmetR",
-            "L Pauldron",
-            "LameL1",
-            "LameL2",
-            "R Pauldron",
-            "LameR1",
-            "Plate1",
-            "Plate2",
-            "ArmorLegL1",
-            "ArmorLegL2",
-            "ArmorL1"
-          ]
+          "Resistant": ["Visor", "Helmet1", "Helmet2", "HelmetL", "HelmetR", "L Pauldron", "LameL1", "LameL2", "R Pauldron", "LameR1", "Plate1", "Plate2", "ArmorLegL1", "ArmorLegL2", "ArmorL1"]
         },
         "*-surface": {
           "Torso": ["Pelvis", "Midsection", "Chest", "Neck1"],

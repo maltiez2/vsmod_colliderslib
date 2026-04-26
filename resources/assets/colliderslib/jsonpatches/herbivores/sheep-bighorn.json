@@ -8,19 +8,19 @@
       "code": "CollidersLib:EntityColliders",
       "elementsByType": {
         "*-male": {
-          "Torso": ["neck", "Body", "R back leg", "L back leg"],
-          "Head": ["head", "mouth up"],
-          "Arm": ["R back foot", "L back foot"],
-          "Leg": ["R front leg", "R front foot", "L front leg", "L front foot"],
-          "Critical": [],
+          "Torso": ["Rear", "Midsection", "Chest", "Neck", "Body", "L Shoulder", "L ArmUp", "R Shoulder", "R ArmUp", "L Haunch", "R Haunch"],
+          "Head": ["Head", "MouthUp"],
+          "Arm": ["L ArmMid", "L ArmLow", "R ArmMid", "R ArmLow"],
+          "Leg": ["L LegUp", "R LegLow", "R LegUp", "L LegLow"],
+          "Critical": ["Neck2"],
           "Resistant": ["R horn base", " R horn 2", "R horn 3", "R horn 4", "L horn base20", "L horn 21", "L horn 22", "L horn 23"]
         },
         "*-female": {
-          "Torso": ["neck", "Body", "R back leg", "L back leg"],
-          "Head": ["head", "mouth up"],
-          "Arm": ["R back foot", "L back foot"],
-          "Leg": ["R front leg", "R front foot", "L front leg", "L front foot"],
-          "Critical": [],
+          "Torso": ["Rear", "Midsection", "Chest", "Neck", "Body", "L Shoulder", "L ArmUp", "R Shoulder", "R ArmUp", "L Haunch", "R Haunch"],
+          "Head": ["Head", "MouthUp"],
+          "Arm": ["L ArmMid", "L ArmLow", "R ArmMid", "R ArmLow"],
+          "Leg": ["R LegUp", "R LegLow", "L LegUp", "L LegLow"],
+          "Critical": ["Neck2"],
           "Resistant": []
         }
       }

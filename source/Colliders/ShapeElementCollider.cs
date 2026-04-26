@@ -1,10 +1,9 @@
 ﻿using OpenTK.Mathematics;
+using OverhaulLib.Utils;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
-using CollidersLib.VectorsUtils;
 
 namespace CollidersLib;
 

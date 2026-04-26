@@ -19,11 +19,16 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
         InitGpuObjects();
     }
 
+
     public double RenderOrder => 1.0;
     public int RenderRange => int.MaxValue;
 
+    public static bool RenderColliders { get; set; } = false;
+
+
     public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
     {
+        if (!RenderColliders) return;
         if (_shader == null) return;
         EntityPlayer? localPlayer = _api.World.Player?.Entity;
         if (localPlayer == null) return;
@@ -57,6 +62,8 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
         _shader?.Dispose();
     }
 
+
+
     private const int _edgesPerBox = 12;
     private const int _verticesPerBox = _edgesPerBox * 2;
     private const int _maxBoxes = 256;
@@ -81,6 +88,7 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
     private int _vertexCount = 0;
     private Vector3d _cameraOrigin;
     private bool _disposed = false;
+
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct WireframeVertex

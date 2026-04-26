@@ -28,7 +28,7 @@ public class ItemCapsuleCollider
         Radius = radius;
     }
 
-    public bool TransformCollider(EntityPlayer player, bool mainHand = true, bool resetPreviousCollider = false)
+    public bool TransformCollider(EntityPlayer player, bool mainHand = true, bool resetPreviousCollider = false, bool updatePrevious = true)
     {
         Matrixf? modelMatrix = player.GetBehavior<CollidersTranformBehavior>()?.GetHeldItemModelMatrix(mainHand);
 
@@ -37,7 +37,10 @@ public class ItemCapsuleCollider
             return false;
         }
 
-        PreviousInWorldCollider = InWorldCollider;
+        if (updatePrevious)
+        {
+            PreviousInWorldCollider = InWorldCollider;
+        }
         InWorldCollider = RelativeCollider.Transform(modelMatrix, player.CameraPos);
 
         if (resetPreviousCollider)
@@ -59,5 +62,18 @@ public class ItemCapsuleCollider
         Vector3 position = new(jsonValues.Position[0], jsonValues.Position[1], jsonValues.Position[2]);
         Vector3 direction = new(jsonValues.Direction[0], jsonValues.Direction[1], jsonValues.Direction[2]);
         return new(position, direction, jsonValues.Radius);
+    }
+
+    public static string ToJson(ItemCapsuleCollider collider)
+    {
+        float positionX = (float)collider.RelativeCollider.Position.X;
+        float positionY = (float)collider.RelativeCollider.Position.Y;
+        float positionZ = (float)collider.RelativeCollider.Position.Z;
+        float directionX = (float)collider.RelativeCollider.Direction.X;
+        float directionY = (float)collider.RelativeCollider.Direction.Y;
+        float directionZ = (float)collider.RelativeCollider.Direction.Z;
+        float radius = collider.Radius;
+
+        return $"{{\"Position\":[{positionX}, {positionY}, {positionZ}], \"Direction\":[{directionX}, {directionY}, {directionZ}], \"Radius\": {radius}}}";
     }
 }

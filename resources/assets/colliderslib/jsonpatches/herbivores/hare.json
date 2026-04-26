@@ -6,7 +6,7 @@
     "path": "/@@*/behaviors/-",
     "value": {
       "code": "CollidersLib:EntityColliders",
-      "elements": {"Torso": ["abdomen", "body", "L back leg", "R back leg"], "Head": ["head", "mouth"], "Arm": [], "Leg": [], "Critical": ["neck"], "Resistant": []},
+      "elements": { "Torso": ["abdomen", "body", "L back leg", "R back leg"], "Head": ["head", "mouth"], "Arm": [], "Leg": [], "Critical": ["neck"], "Resistant": [] },
       "defaultPenetrationResistance": 2
     }
   },
@@ -17,7 +17,7 @@
     "path": "/@@*/behaviors/-",
     "value": {
       "code": "CollidersLib:EntityColliders",
-      "elements": {"Torso": ["abdomen", "body", "L back leg", "R back leg"], "Head": ["head", "mouth"], "Arm": [], "Leg": [], "Critical": ["neck"], "Resistant": []},
+      "elements": { "Torso": ["abdomen", "body", "L back leg", "R back leg"], "Head": ["head", "mouth"], "Arm": [], "Leg": [], "Critical": ["neck"], "Resistant": [] },
       "defaultPenetrationResistance": 0
     }
   }

@@ -94,10 +94,20 @@ public static class CollisionSolvers
         Vector3d directionHead = thisTickStart - startHead;
         Vector3d directionTail = thisTickStart + thisTickDirection - startTail;
         float radius = collider.Radius;
+        intersections = [];
 
         int subdivisions = (int)Math.Ceiling(Math.Max((thisTickStart - previousTickStart).Length, (thisTickStart + thisTickDirection - previousTickStart - previousTickDirection).Length) / radius);
 
-        intersections = [];
+        if (subdivisions == 0)
+        {
+            /*for (int i = 0; i < 11; i++)
+            {
+                var pos = (thisTickStart + i * 0.1f * thisTickDirection).ToVanillaRef();
+                target.Api.World.SpawnParticles(1, ColorUtil.ColorFromRgba(255, 125, 125, 255), pos, pos, new(), new(), 1, 0, 1, EnumParticleModel.Cube);
+            }*/
+            CollideWithEntity(target, entityColliders, thisTickStart + thisTickDirection, thisTickStart, radius, intersections, 0, 1);
+            return intersections.Count != 0;
+        }
 
         for (int subdivision = 0; subdivision < subdivisions; subdivision++)
         {
@@ -105,10 +115,16 @@ public static class CollisionSolvers
             Vector3d head = startHead + directionHead * subdivisionParameter;
             Vector3d tail = startTail + directionTail * subdivisionParameter;
 
+            /*for (int i = 0; i < 11; i++)
+            {
+                var pos = (head + i * 0.1f * (tail - head)).ToVanillaRef();
+                target.Api.World.SpawnParticles(1, ColorUtil.ColorFromRgba(255, 125, 125, 255), pos, pos, new(), new(), 1, 0, 1, EnumParticleModel.Cube);
+            }*/
+
             CollideWithEntity(target, entityColliders, head, tail, radius, intersections, subdivision, subdivisions);
         }
 
-        return intersections.Any();
+        return intersections.Count != 0;
     }
     public static bool CollideWithEntity(this EntitySphereCollider collider, Entity target, CollidersEntityBehavior? entityColliders, out List<EntityWithSphereIntersectionData> intersections)
     {
@@ -138,9 +154,9 @@ public static class CollisionSolvers
 
         foreach (ShapeElementCollider shapeElementCollider in collider.Colliders)
         {
-            if (shapeElementCollider.Collide(tail, head, radius, out _, out Vector3d intersection, out _))
+            if (shapeElementCollider.Collide(head, tail, radius, out _, out Vector3d intersection, out _))
             {
-                intersections.Add(new(shapeElementCollider, intersection, (intersection - head).Length, subdivision, totalSubdivisions));
+                intersections.Add(new(shapeElementCollider, intersection, (intersection - tail).Length, subdivision, totalSubdivisions));
             }
         }
     }
@@ -192,9 +208,15 @@ public static class CollisionSolvers
         Vector3d directionTail = thisTickStart + thisTickDirection - startTail;
         float radius = collider.Radius;
 
+        intersections = [];
+
         int subdivisions = (int)Math.Ceiling(Math.Max((thisTickStart - previousTickStart).Length, (thisTickStart + thisTickDirection - previousTickStart - previousTickDirection).Length) / radius);
 
-        intersections = [];
+        if (subdivisions == 0)
+        {
+            CollideWithTerrain(startHead + directionHead, startTail + directionTail, radius, api, intersections, 0, subdivisions);
+            return intersections.Count != 0;
+        }
 
         for (int subdivision = 0; subdivision < subdivisions; subdivision++)
         {

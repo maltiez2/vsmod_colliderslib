@@ -1,0 +1,21 @@
+﻿[
+  {
+    "side": "Server",
+    "file": "game:entities/animal/mammal/hooved/sheep-baby",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*": {
+          "Torso": ["Rear", "Midsection", "Chest", "Neck", "Body", "L Shoulder", "L ArmUp", "R Shoulder", "R ArmUp", "L Haunch", "R Haunch"],
+          "Head": ["Head"],
+          "Arm": ["L ArmMid", "L ArmLow", "R ArmMid", "R ArmLow"],
+          "Leg": ["L LegUp", "R LegLow", "R LegUp", "L LegLow"],
+          "Critical": ["Neck2"],
+          "Resistant": []
+        }
+      }
+    }
+  }
+]

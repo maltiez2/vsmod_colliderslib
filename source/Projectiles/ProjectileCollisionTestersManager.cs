@@ -1,9 +1,8 @@
-﻿using CollidersLib.VectorsUtils;
-using OpenTK.Mathematics;
+﻿using OpenTK.Mathematics;
+using OverhaulLib.Utils;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Server;
-using Vintagestory.GameContent;
 
 namespace CollidersLib.Projectiles;
 

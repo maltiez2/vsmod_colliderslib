@@ -1,7 +1,6 @@
-﻿using CollidersLib.VectorsUtils;
-using HarmonyLib;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using OpenTK.Mathematics;
+using OverhaulLib.Utils;
 using System.Collections.Immutable;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -240,6 +239,8 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
             Dictionary<Entity, EntityWithCapsuleIntersectionData[]> entityCollisions = [];
             foreach ((Entity target, CollidersEntityBehavior? targetColliders) in targetsColliders)
             {
+                if (target == player) continue;
+                
                 if (collider.CollideWithEntity(target, targetColliders, out List<EntityWithCapsuleIntersectionData> entityIntersections))
                 {
                     entityCollisions.Add(target, entityIntersections.ToArray());
@@ -278,7 +279,7 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
                     SingleItemCollisionData collisionData = new(
                         colliderIndex: collision.ColliderIndex,
                         priority: priority,
-                        subdivision: entityCollision.Subdivision / (double)entityCollision.TotalSubdivisions,
+                        subdivision: entityCollision.TotalSubdivisions == 0 ? 0 : entityCollision.Subdivision / (double)entityCollision.TotalSubdivisions,
                         distanceFromTail: entityCollision.DistanceFromTail,
                         behindTerrain: false,
                         behindAttacker: behindAttacker,
@@ -299,7 +300,7 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
                 SingleItemCollisionData collisionData = new(
                     colliderIndex: collision.ColliderIndex,
                     priority: priority,
-                    subdivision: terrainCollision.Subdivision / (double)terrainCollision.TotalSubdivisions,
+                    subdivision: terrainCollision.TotalSubdivisions == 0 ? 0 : terrainCollision.Subdivision / (double)terrainCollision.TotalSubdivisions,
                     distanceFromTail: terrainCollision.DistanceFromTail,
                     behindTerrain: false,
                     behindAttacker: behindAttacker,
@@ -315,7 +316,7 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
 
     protected virtual double CalculatePriority(double collider, int subDivision, int totalSubdivisions, double distanceFromTail)
     {
-        double time = ((double)subDivision) / totalSubdivisions;
+        double time = totalSubdivisions == 0 ? 0 : ((double)subDivision) / totalSubdivisions;
         const double step = 1000;
         
         return (time * step * step + collider * step + distanceFromTail / step) / (step * step * step);
