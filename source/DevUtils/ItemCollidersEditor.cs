@@ -24,7 +24,7 @@ public sealed class ItemCapsuleColliderEditor
 
 
 
-    private bool _editorOpened = true;
+    private bool _editorOpened = false;
     private readonly ICoreClientAPI _api;
 
 
