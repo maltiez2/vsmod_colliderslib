@@ -42,7 +42,7 @@
           "Arm": [],
           "Leg": ["L Calf", "L Thigh", "R Calf", "R Thigh"],
           "Critical": ["Neck2", "Neck3"],
-          "Resistant": ["PlateRB2", "PlateRA1", "Plate1", "PlateLA1", "PlateLA2", "PlateRA2", "Plate2", "Plate3", "PlateLA3", "PlateRA3", "Plate4", "Plate6", "Plate5"]
+          "Resistant": ["PlateRB2", "PlateRA1", "Plate1", "PlateLA1", "PlateLA2", "PlateRA2", "Plate2", "Plate3", "PlateLA3", "PlateRA3", "Plate4", "Plate6", "Plate5", "L Foot", "R Foot", "GearB5", "GearB6"]
         },
         "*-nightmare": {
           "Torso": ["Pelvis", "Midsection", "Chest", "Neck1"],

@@ -6,13 +6,39 @@
     "path": "/@@*/behaviors/-",
     "value": {
       "code": "CollidersLib:EntityColliders",
-      "elements": {
-        "Torso": ["body", "L back leg", "R back leg"],
-        "Head": ["neck", "head", "cheeks"],
-        "Arm": ["R front feet", "L front feet"],
-        "Leg": ["L back feet", "R back feet"],
-        "Critical": [],
-        "Resistant": []
+      "elementsByType": {
+        "*-eurasian-adult-*": {
+          "Torso": ["Chest", "Midsection", "Rear", "Neck"],
+          "Head": ["Head", "MouthUp", "Nose", "L Cheek", "R Cheek"],
+          "Arm": ["L ArmUp", "L ArmMid", "L ArmLow", "R ArmUp", "R ArmMid", "R ArmLow"],
+          "Leg": ["L Haunch", "L LegUp", "L LegLow", "R Haunch", "R LegUp", "R LegLow"],
+          "Critical": ["Throat"],
+          "Resistant": []
+        },
+        "*-redriver-adult-*": {
+          "Torso": ["Chest", "Midsection", "Rear", "Neck"],
+          "Head": ["Head", "MouthUp", "L Cheek", "R Cheek"],
+          "Arm": ["L ArmUp", "L ArmMid", "L ArmLow", "R ArmUp", "R ArmMid", "R ArmLow"],
+          "Leg": ["L Haunch", "L LegUp", "L LegLow", "R Haunch", "R LegUp", "R LegLow"],
+          "Critical": ["Throat"],
+          "Resistant": []
+        },
+        "*-warthog-adult-*": {
+          "Torso": ["Chest", "Midsection", "Rear", "Neck"],
+          "Head": ["Head", "Nose2", "Nose"],
+          "Arm": ["L ArmUp", "L ArmMid", "L ArmLow", "L Front Pastern", "R ArmUp", "R ArmMid", "R ArmLow", "R Front Pastern"],
+          "Leg": ["L Haunch", "L LegUp", "L LegLow", "L Hind Pastern", "R Haunch", "R LegUp", "R LegLow", "R Hind Pastern"],
+          "Critical": [],
+          "Resistant": []
+        },
+        "*-elder-*": {
+          "Torso": ["Chest", "Midsection", "Rear", "Neck"],
+          "Head": ["Head", "MouthUp", "Nose", "L Cheek", "R Cheek"],
+          "Arm": ["L ArmUp", "L ArmMid", "L ArmLow", "R ArmUp", "R ArmMid", "R ArmLow"],
+          "Leg": ["L Haunch", "L LegUp", "L LegLow", "R Haunch", "R LegUp", "R LegLow"],
+          "Critical": [],
+          "Resistant": []
+        }
       }
     }
   },
@@ -21,9 +47,6 @@
     "file": "game:entities/animal/mammal/hooved/pig-baby",
     "op": "add",
     "path": "/@@*/behaviors/-",
-    "value": {
-      "code": "CollidersLib:EntityColliders",
-      "elements": { "Torso": ["body"], "Head": ["head", "nose"], "Arm": ["R front feet", "L front feet"], "Leg": ["L back feet", "R back feet"], "Critical": [], "Resistant": [] }
-    }
+    "value": { "code": "CollidersLib:EntityColliders", "elements": { "Torso": ["Chest", "Rear"], "Head": ["Head", "Nose"], "Arm": [], "Leg": [], "Critical": [], "Resistant": [] } }
   }
 ]

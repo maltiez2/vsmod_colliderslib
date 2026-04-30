@@ -1,0 +1,36 @@
+﻿[
+  {
+    "side": "Server",
+    "file": "game:entities/animal/fish/freshwater-adult",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*-arapaima-*": { "Torso": ["Rear", "Midsection", "Chest"], "Head": ["Head5", "Head", "HeadLower"], "Arm": [], "Leg": [], "Critical": [], "Resistant": [] },
+        "*": { "Torso": ["Rear", "Midsection", "Chest"], "Head": ["Head"], "Arm": [], "Leg": [], "Critical": [], "Resistant": [] }
+      }
+    }
+  },
+  {
+    "side": "Server",
+    "file": "game:entities/animal/fish/reef-adult",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": { "code": "CollidersLib:EntityColliders", "elementsByType": { "*": { "Torso": ["Rear", "Midsection", "Chest"], "Head": ["Head"], "Arm": [], "Leg": [], "Critical": [], "Resistant": [] } } }
+  },
+  {
+    "side": "Server",
+    "file": "game:entities/animal/fish/saltwater-adult",
+    "op": "add",
+    "path": "/@@*/behaviors/-",
+    "value": {
+      "code": "CollidersLib:EntityColliders",
+      "elementsByType": {
+        "*-sturgeon-*": { "Torso": ["Rear", "Midsection", "Chest"], "Head": ["Head", "NoseBridge", "Nose"], "Arm": [], "Leg": [], "Critical": [], "Resistant": [] },
+        "*-barracuda-*": { "Torso": ["Rear", "Midsection", "Chest"], "Head": ["Head", "Nose", "Jaw"], "Arm": [], "Leg": [], "Critical": [], "Resistant": [] },
+        "*": { "Torso": ["Rear", "Midsection", "Chest"], "Head": ["Head"], "Arm": [], "Leg": [], "Critical": [], "Resistant": [] }
+      }
+    }
+  }
+]
