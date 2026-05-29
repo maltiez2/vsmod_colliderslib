@@ -9,7 +9,7 @@ namespace CollidersLib;
 
 public sealed class ShapeElementCollider
 {
-    public ShapeElementCollider(ShapeElement element, int colliderType)
+    public ShapeElementCollider(ShapeElement element, string colliderType)
     {
         JointId = element.JointId;
         SetElementVertices(element);
@@ -22,16 +22,15 @@ public sealed class ShapeElementCollider
     public Vector4d[] ElementVertices { get; } = new Vector4d[VertexCount];
     public Vector4d[] InworldVertices { get; } = new Vector4d[VertexCount];
     public int JointId { get; set; }
-    public EntityShapeRenderer? Renderer { get; set; } = null;
     public bool HasRenderer { get; set; } = false;
     public string ShapeElementName { get; set; }
-    public int ColliderType { get; set; }
+    public string ColliderType { get; set; }
+    public Color4 Color { get; set; } = Color4.White;
 
-    
-    public void Transform(float[] transformMatrixAll, ICoreClientAPI api)
+
+
+    public void Transform(float[] transformMatrixAll, ICoreClientAPI api, EntityShapeRenderer renderer)
     {
-        if (Renderer == null) return;
-
         double[] transformMatrix = GetTransformMatrix(JointId, transformMatrixAll);
 
         Vec3d cameraPos = api.World.Player.Entity.CameraPos;
@@ -40,7 +39,7 @@ public sealed class ShapeElementCollider
         {
             InworldVertices[vertex] = MultiplyVectorByMatrix(transformMatrix, ElementVertices[vertex]);
             InworldVertices[vertex].W = 1.0f;
-            InworldVertices[vertex] = MultiplyVectorByMatrix(Renderer.ModelMat, InworldVertices[vertex]);
+            InworldVertices[vertex] = MultiplyVectorByMatrix(renderer.ModelMat, InworldVertices[vertex]);
             InworldVertices[vertex].X += cameraPos.X;
             InworldVertices[vertex].Y += cameraPos.Y;
             InworldVertices[vertex].Z += cameraPos.Z;
@@ -246,10 +245,6 @@ public sealed class ShapeElementCollider
         // Compute the closest point
         Vector3d closest = A + t * AB;
         return closest;
-    }
-    private static void RenderLine(ICoreClientAPI api, Vector4d start, Vector4d end, BlockPos playerPos, Vec3f deltaPos, int color)
-    {
-        api.Render.RenderLine(playerPos, (float)start.X + deltaPos.X, (float)start.Y + deltaPos.Y, (float)start.Z + deltaPos.Z, (float)end.X + deltaPos.X, (float)end.Y + deltaPos.Y, (float)end.Z + deltaPos.Z, color);
     }
 }
 

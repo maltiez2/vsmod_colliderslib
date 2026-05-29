@@ -1,5 +1,4 @@
 ﻿using OpenTK.Mathematics;
-using System.Diagnostics;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common.Entities;
 

@@ -1,5 +1,6 @@
 ﻿using CollidersLib.Items;
 using ImGuiNET;
+using OpenTK.Mathematics;
 using OverhaulLib.Utils;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -41,7 +42,13 @@ public sealed class ItemCapsuleColliderEditor
         if (ImGui.Button("Toggle colliders rendering"))
         {
             HeldItemCapsuleRenderer.RenderColliders = !HeldItemCapsuleRenderer.RenderColliders;
-            EntityCollidersBoxRenderer.RenderColliders = HeldItemCapsuleRenderer.RenderColliders;
+            EntityCollidersWireframeRenderer.RenderColliders = HeldItemCapsuleRenderer.RenderColliders;
+        }
+
+        if (ImGui.Button("Test colliders highlight"))
+        {
+            CollidersLibSystem system = _api.ModLoader.GetModSystem<CollidersLibSystem>();
+            system.EntityBoxColliderRenderer?.HighlightColliders(_api.World.Player.Entity.EntityId, TimeSpan.FromSeconds(1), Color4.Red, "Torso");
         }
 
         int index = 0;

@@ -15,6 +15,7 @@ public sealed class CollidersLibSystem : ModSystem
     public ProjectileCollisionsSynchroniserClient? ProjectileCollisionsSynchroniserClient { get; private set; }
     public ItemCollisionsSynchroniserServer? ItemCollisionsSynchroniserServer { get; private set; }
     public ItemCollisionsSynchroniserClient? ItemCollisionsSynchroniserClient { get; private set; }
+    public EntityCollidersBoxRenderer? EntityBoxColliderRenderer => _entityBoxColliderRenderer;
 
 
     public override void Start(ICoreAPI api)
@@ -25,8 +26,6 @@ public sealed class CollidersLibSystem : ModSystem
         api.RegisterCollectibleBehaviorClass("CollidersLib:ItemCollidersServer", typeof(ItemCollidersBehaviorServer));
         api.RegisterCollectibleBehaviorClass("CollidersLib:ItemCollidersClient", typeof(ItemCollidersBehaviorClient));
 
-        HarmonyPatches.Patch("CollidersLib", api);
-
         _api = api;
     }
 
@@ -35,7 +34,8 @@ public sealed class CollidersLibSystem : ModSystem
         ProjectileCollisionsSynchroniserClient = new(api);
         ItemCollisionsSynchroniserClient = new(api);
         _capsuleRenderer = new(api);
-        _entityColliderRenderer = new(api);
+        _entityWireframeColliderRenderer = new(api);
+        _entityBoxColliderRenderer = new(api);
         _itemCapsuleColliderEditor = new(api);
     }
 
@@ -49,17 +49,18 @@ public sealed class CollidersLibSystem : ModSystem
     {
         if (_api == null) return;
         
-        HarmonyPatches.Unpatch("CollidersLib", _api);
-
         _api = null;
         _capsuleRenderer?.Dispose();
-        _entityColliderRenderer?.Dispose();
+        _entityWireframeColliderRenderer?.Dispose();
+        _entityBoxColliderRenderer?.Dispose();
         _capsuleRenderer = null;
-        _entityColliderRenderer = null;
+        _entityWireframeColliderRenderer = null;
+        _entityBoxColliderRenderer = null;
     }
 
     private ICoreAPI? _api;
     private HeldItemCapsuleRenderer? _capsuleRenderer;
-    private EntityCollidersBoxRenderer? _entityColliderRenderer;
+    private EntityCollidersWireframeRenderer? _entityWireframeColliderRenderer;
+    private EntityCollidersBoxRenderer? _entityBoxColliderRenderer;
     private ItemCapsuleColliderEditor? _itemCapsuleColliderEditor;
 }

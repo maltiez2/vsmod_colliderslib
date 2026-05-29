@@ -1,5 +1,6 @@
 ﻿using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
+using OverhaulLib.Utils;
 using System.Runtime.InteropServices;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -8,14 +9,14 @@ using Vintagestory.API.MathTools;
 
 namespace CollidersLib.DevTools;
 
-public sealed class EntityCollidersBoxRenderer : IRenderer
+public sealed class EntityCollidersWireframeRenderer : IRenderer
 {
-    public EntityCollidersBoxRenderer(ICoreClientAPI api)
+    public EntityCollidersWireframeRenderer(ICoreClientAPI api)
     {
         _api = api;
-        _api.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "entitycollidersboxrenderer");
+        _api.Event.RegisterRenderer(this, RenderStage, "CollidersLib:EntityCollidersWireframeRenderer");
         _api.Event.ReloadShader += LoadShader;
-        LoadShader();
+        _ = LoadShader();
         InitGpuObjects();
     }
 
@@ -23,31 +24,39 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
     public double RenderOrder => 1.0;
     public int RenderRange => int.MaxValue;
 
+    public float MaxEntityDistance { get; set; } = 128;
     public static bool RenderColliders { get; set; } = false;
+
+
+    public const EnumRenderStage RenderStage = EnumRenderStage.Opaque;
 
 
     public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
     {
         if (!RenderColliders) return;
         if (_shader == null) return;
+        
         EntityPlayer? localPlayer = _api.World.Player?.Entity;
         if (localPlayer == null) return;
+        
         _cameraOrigin = new Vector3d(localPlayer.CameraPos.X, localPlayer.CameraPos.Y, localPlayer.CameraPos.Z);
         _vertexCount = 0;
-        foreach (Entity entity in _api.World.LoadedEntities.Values)
+        foreach (Entity entity in _api.World.GetEntitiesAround(_cameraOrigin.ToVanillaRef(), MaxEntityDistance, MaxEntityDistance, entity => entity.IsRendered && entity.Alive))
         {
-            if (!entity.IsRendered) continue;
-            if (!entity.Alive) continue;
             CollidersEntityBehavior? behavior = entity.GetBehavior<CollidersEntityBehavior>();
             if (behavior == null) continue;
             if (!behavior.HasOBBCollider) continue;
             if (behavior.Colliders.Count == 0) continue;
+
             bool isLocalPlayer = entity.EntityId == localPlayer.EntityId;
-            bool firstPerson = _api.World.Player.CameraMode == EnumCameraMode.FirstPerson;
+            bool firstPerson = _api.World.Player?.CameraMode == EnumCameraMode.FirstPerson;
             if (isLocalPlayer && firstPerson) continue;
+            
             BuildCollidersForEntity(behavior);
         }
+        
         if (_vertexCount == 0) return;
+        
         UploadAndDraw();
     }
 
@@ -56,7 +65,7 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
         if (_disposed) return;
         _disposed = true;
         _api.Event.ReloadShader -= LoadShader;
-        _api.Event.UnregisterRenderer(this, EnumRenderStage.Opaque);
+        _api.Event.UnregisterRenderer(this, RenderStage);
         GL.DeleteVertexArray(_vertexArrayObject);
         GL.DeleteBuffer(_vertexBufferObject);
         _shader?.Dispose();
@@ -75,11 +84,6 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
         (0,1),(0,3),(0,4),(1,2),(1,5),(2,3),(2,6),(3,7),(4,5),(4,7),(5,6),(6,7)
     ];
 
-    private static readonly (byte R, byte G, byte B, byte A)[] _colliderTypeColors =
-    [
-        (255,255,255,255),(255,0,0,255),(0,255,0,255),(0,0,255,255),(255,255,0,255),(255,0,255,255)
-    ];
-
     private readonly ICoreClientAPI _api;
     private IShaderProgram? _shader;
     private int _vertexArrayObject;
@@ -91,12 +95,18 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
 
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    private struct WireframeVertex
+    private struct WireframeVertex(float x, float y, float z, byte r, byte g, byte b, byte a)
     {
-        public float X, Y, Z;
-        public byte R, G, B, A;
-        public int RenderFlags;
-        public WireframeVertex(float x, float y, float z, byte r, byte g, byte b, byte a) { X = x; Y = y; Z = z; R = r; G = g; B = b; A = a; RenderFlags = 0; }
+        public float X = x;
+        public float Y = y;
+        public float Z = z;
+        
+        public byte R = r;
+        public byte G = g;
+        public byte B = b;
+        public byte A = a;
+        
+        public int RenderFlags = 0;
     }
 
     private void BuildCollidersForEntity(CollidersEntityBehavior behavior)
@@ -104,7 +114,7 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
         foreach (ShapeElementCollider collider in behavior.Colliders)
         {
             if (_vertexCount + _verticesPerBox > _maxVertices) return;
-            (byte R, byte G, byte B, byte A) color = GetColor(collider.ColliderType);
+            (byte R, byte G, byte B, byte A) color = GetColor(collider);
             BuildBox(collider.InworldVertices, color);
         }
     }
@@ -191,9 +201,8 @@ void main(){outColor=color;outGlow=vec4(0.0,0.0,0.0,color.a);}";
         return success;
     }
 
-    private static (byte R, byte G, byte B, byte A) GetColor(int colliderType)
+    private static (byte R, byte G, byte B, byte A) GetColor(ShapeElementCollider collider)
     {
-        if (colliderType >= 0 && colliderType < _colliderTypeColors.Length) return _colliderTypeColors[colliderType];
-        return _colliderTypeColors[0];
+        return ((byte)(255 * collider.Color.R), (byte)(255 * collider.Color.G), (byte)(255 * collider.Color.B), (byte)(255 * collider.Color.A));
     }
 }
