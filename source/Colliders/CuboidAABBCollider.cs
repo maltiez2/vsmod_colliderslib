@@ -93,24 +93,37 @@ public readonly struct CuboidAABBCollider
 
     private static Vector3d GetIntersectingFaceNormal(Vector3d min, Vector3d max, Vector3d dir)
     {
-        // Normalize direction (optional — only needed for consistent t values)
         dir.Normalize();
 
         Vector3d center = (min + max) * 0.5;
         Vector3d halfExtents = (max - min) * 0.5;
 
-        // Avoid division by zero — use double.MaxValue to represent no intersection in that axis
-        double tx = dir.X != 0 ? (Math.Sign(dir.X) * halfExtents.X) / dir.X : double.MaxValue;
-        double ty = dir.Y != 0 ? (Math.Sign(dir.Y) * halfExtents.Y) / dir.Y : double.MaxValue;
-        double tz = dir.Z != 0 ? (Math.Sign(dir.Z) * halfExtents.Z) / dir.Z : double.MaxValue;
+        bool dirXIsValid = Math.Abs(dir.X) > double.Epsilon && !double.IsNaN(dir.X);
+        bool dirYIsValid = Math.Abs(dir.Y) > double.Epsilon && !double.IsNaN(dir.Y);
+        bool dirZIsValid = Math.Abs(dir.Z) > double.Epsilon && !double.IsNaN(dir.Z);
 
-        // Pick smallest positive t
+        double tx = dirXIsValid ? (Math.Sign(dir.X) * halfExtents.X) / dir.X : double.MaxValue;
+        double ty = dirYIsValid ? (Math.Sign(dir.Y) * halfExtents.Y) / dir.Y : double.MaxValue;
+        double tz = dirZIsValid ? (Math.Sign(dir.Z) * halfExtents.Z) / dir.Z : double.MaxValue;
+
         double t = double.MaxValue;
         Vector3d normal = Vector3d.Zero;
 
-        if (tx > 0 && tx < t) { t = tx; normal = new Vector3d(Math.Sign(dir.X), 0, 0); }
-        if (ty > 0 && ty < t) { t = ty; normal = new Vector3d(0, Math.Sign(dir.Y), 0); }
-        if (tz > 0 && tz < t) { t = tz; normal = new Vector3d(0, 0, Math.Sign(dir.Z)); }
+        if (tx > 0 && tx < t && dirXIsValid)
+        {
+            t = tx;
+            normal = new Vector3d(Math.Sign(dir.X), 0, 0);
+        }
+        if (ty > 0 && ty < t && dirYIsValid)
+        { 
+            t = ty;
+            normal = new Vector3d(0, Math.Sign(dir.Y), 0);
+        }
+        if (tz > 0 && tz < t && dirZIsValid)
+        { 
+            t = tz;
+            normal = new Vector3d(0, 0, Math.Sign(dir.Z));
+        }
 
         return normal;
     }

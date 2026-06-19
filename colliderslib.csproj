@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ModName>Colliders lib</ModName>
     <ModType>code</ModType>
-    <ModVersion>0.2.0</ModVersion>
+    <ModVersion>0.2.1</ModVersion>
     <ModId>colliderslib</ModId>
     <Description></Description>
     <Side>universal</Side>
@@ -21,6 +21,7 @@
     <Dependencies Include="jsonpatcheslib" Version="1.5.1" />
     <Dependencies Include="overhaullib" Version="2.0.4" />
     <Dependencies Include="vsimgui" Version="1.2.1" />
+    <Dependencies Include="playerinventorylib" Version="0.0.10" />
   </ItemGroup>
 
   <!-- Project settings -->

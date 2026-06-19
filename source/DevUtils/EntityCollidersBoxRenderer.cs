@@ -1,6 +1,5 @@
 ﻿using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using OverhaulLib.Utils;
 using System.Runtime.InteropServices;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -60,7 +59,7 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
             CollidersEntityBehavior? behavior = entity.GetBehavior<CollidersEntityBehavior>();
             if (behavior == null) continue;
             if (!behavior.HasOBBCollider) continue;
-            if (behavior.Colliders.Count == 0) continue;
+            if (behavior.Colliders.Length == 0) continue;
 
             bool isLocalPlayer = entity.EntityId == localPlayer.EntityId;
             bool firstPerson = _api.World.Player?.CameraMode == EnumCameraMode.FirstPerson;
@@ -234,7 +233,7 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
 
     private void BuildCollidersForEntity(CollidersEntityBehavior behavior, Dictionary<string, ColliderHighlightData> colliders)
     {
-        foreach (ShapeElementCollider collider in behavior.Colliders)
+        foreach (ShapeElementInWorldCollider collider in behavior.Colliders)
         {
             if (!colliders.TryGetValue(collider.ColliderType, out ColliderHighlightData? highlightData)) continue;
             if (_edgeVertexCount + _edgeVerticesPerBox > _maxEdgeVertices) return;
