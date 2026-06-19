@@ -56,7 +56,7 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
 
             if (!entity.IsRendered) continue;
 
-            CollidersEntityBehavior? behavior = entity.GetBehavior<CollidersEntityBehavior>();
+            IEntityCollidersProvider? behavior = entity.GetInterface<IEntityCollidersProvider>();
             if (behavior == null) continue;
             if (!behavior.HasOBBCollider) continue;
             if (behavior.Colliders.Length == 0) continue;
@@ -132,7 +132,7 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
 
         foreach (string collider in colliders)
         {
-            if (highlitedColliders.TryGetValue(collider, out ColliderHighlightData data) && data.TotalTime <= 0)
+            if (highlitedColliders.TryGetValue(collider, out ColliderHighlightData? data) && data.TotalTime <= 0)
             {
                 highlitedColliders.Remove(collider);
             }
@@ -231,11 +231,12 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
         }
     }
 
-    private void BuildCollidersForEntity(CollidersEntityBehavior behavior, Dictionary<string, ColliderHighlightData> colliders)
+    private void BuildCollidersForEntity(IEntityCollidersProvider behavior, Dictionary<string, ColliderHighlightData> colliders)
     {
         foreach (ShapeElementInWorldCollider collider in behavior.Colliders)
         {
-            if (!colliders.TryGetValue(collider.ColliderType, out ColliderHighlightData? highlightData)) continue;
+            string colliderType = behavior.ColliderTypeById[collider.ColliderId];
+            if (!colliders.TryGetValue(colliderType, out ColliderHighlightData? highlightData)) continue;
             if (_edgeVertexCount + _edgeVerticesPerBox > _maxEdgeVertices) return;
             if (_faceVertexCount + _faceVerticesPerBox > _maxFaceVertices) return;
 
@@ -246,7 +247,7 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
             }
             else
             {
-                edgeColor = GetColor(collider);
+                edgeColor = GetColor(behavior.ColorByType[colliderType]);
             }
 
             if (highlightData.TotalTime > 0)
@@ -261,11 +262,11 @@ public sealed class EntityCollidersBoxRenderer : IRenderer
                 (byte)(edgeColor.A * FaceAlphaFactor)
             );
 
-            BuildBox(collider.InworldVertices, edgeColor, faceColor);
+            BuildBox(collider, edgeColor, faceColor);
         }
     }
 
-    private void BuildBox(Vector4d[] vertices, (byte R, byte G, byte B, byte A) edgeColor, (byte R, byte G, byte B, byte A) faceColor)
+    private void BuildBox(ShapeElementInWorldCollider vertices, (byte R, byte G, byte B, byte A) edgeColor, (byte R, byte G, byte B, byte A) faceColor)
     {
         foreach ((int a, int b) in _boxEdges)
         {
@@ -424,9 +425,9 @@ void main(){outColor=color;outGlow=vec4(0.0,0.0,0.0,color.a);}";
         return success;
     }
 
-    private static (byte R, byte G, byte B, byte A) GetColor(ShapeElementCollider collider)
+    private static (byte R, byte G, byte B, byte A) GetColor(Color4 color)
     {
-        return FromColor4(collider.Color);
+        return FromColor4(color);
     }
 
     private static (byte R, byte G, byte B, byte A) FromColor4(Color4 color) => ((byte)(255 * color.R), (byte)(255 * color.G), (byte)(255 * color.B), (byte)(255 * color.A));

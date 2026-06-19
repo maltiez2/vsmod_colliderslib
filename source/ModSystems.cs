@@ -20,7 +20,7 @@ public sealed class CollidersLibSystem : ModSystem
 
     public override void Start(ICoreAPI api)
     {
-        api.RegisterEntityBehaviorClass("CollidersLib:EntityColliders", typeof(CollidersEntityBehavior));
+        api.RegisterEntityBehaviorClass("CollidersLib:EntityColliders", typeof(StaticEntityCollidersBehavior));
         api.RegisterEntityBehaviorClass("CollidersLib:CollidersTranform", typeof(CollidersTranformBehavior));
         api.RegisterEntityBehaviorClass("CollidersLib:ProjectileColliderServer", typeof(ProjectileColliderServerBehavior));
         api.RegisterCollectibleBehaviorClass("CollidersLib:ItemCollidersServer", typeof(ItemCollidersBehaviorServer));

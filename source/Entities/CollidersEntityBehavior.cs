@@ -7,7 +7,7 @@ using Vintagestory.GameContent;
 namespace CollidersLib;
 
 
-public sealed class CollidersEntityBehavior(Entity entity) : EntityBehavior(entity), IEntityCollidersProvider, IEntityColliderReceiver
+public sealed class CollidersEntityBehavior(Entity entity) : EntityBehavior(entity), IEntityCollidersProvider, IEntityColliderReceiver, ICollidersConfigProcessor
 {
     public CuboidAABBCollider BoundingBox { get; set; }
     public bool HasOBBCollider => Colliders.Length > 0;

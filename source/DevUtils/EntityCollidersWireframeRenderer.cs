@@ -46,7 +46,7 @@ public sealed class EntityCollidersWireframeRenderer : IRenderer
             CollidersEntityBehavior? behavior = entity.GetBehavior<CollidersEntityBehavior>();
             if (behavior == null) continue;
             if (!behavior.HasOBBCollider) continue;
-            if (behavior.Colliders.Count == 0) continue;
+            if (behavior.Colliders.Length == 0) continue;
 
             bool isLocalPlayer = entity.EntityId == localPlayer.EntityId;
             bool firstPerson = _api.World.Player?.CameraMode == EnumCameraMode.FirstPerson;

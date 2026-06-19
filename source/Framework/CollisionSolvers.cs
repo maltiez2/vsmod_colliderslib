@@ -7,15 +7,15 @@ namespace CollidersLib;
 
 public readonly struct EntityWithCapsuleIntersectionData
 {
-    public readonly ShapeElementCollider? EntityCollider;
+    public readonly int EntityColliderId;
     public readonly Vector3d IntersectionPoint;
     public readonly double DistanceFromTail;
     public readonly int Subdivision;
     public readonly int TotalSubdivisions;
 
-    public EntityWithCapsuleIntersectionData(ShapeElementCollider? entityCollider, Vector3d intersectionPoint, double distanceFromTail, int subdivision, int totalSubdivisions)
+    public EntityWithCapsuleIntersectionData(int entityColliderId, Vector3d intersectionPoint, double distanceFromTail, int subdivision, int totalSubdivisions)
     {
-        EntityCollider = entityCollider;
+        EntityColliderId = entityColliderId;
         IntersectionPoint = intersectionPoint;
         DistanceFromTail = distanceFromTail;
         Subdivision = subdivision;
@@ -25,13 +25,13 @@ public readonly struct EntityWithCapsuleIntersectionData
 
 public readonly struct EntityWithSphereIntersectionData
 {
-    public readonly ShapeElementCollider? EntityCollider;
+    public readonly int EntityColliderId;
     public readonly Vector3d IntersectionPoint;
     public readonly double PositionInTime;
 
-    public EntityWithSphereIntersectionData(ShapeElementCollider? entityCollider, Vector3d intersectionPoint, double positionInTime)
+    public EntityWithSphereIntersectionData(int entityColliderId, Vector3d intersectionPoint, double positionInTime)
     {
-        EntityCollider = entityCollider;
+        EntityColliderId = entityColliderId;
         IntersectionPoint = intersectionPoint;
         PositionInTime = positionInTime;
     }
@@ -83,7 +83,7 @@ public readonly struct TerrainWithShpereIntersectionData
 
 public static class CollisionSolvers
 {
-    public static bool CollideWithEntity(this ItemCapsuleCollider collider, Entity target, CollidersEntityBehavior? entityColliders, out List<EntityWithCapsuleIntersectionData> intersections)
+    public static bool CollideWithEntity(this ItemCapsuleCollider collider, Entity target, IEntityCollidersProvider? entityColliders, out List<EntityWithCapsuleIntersectionData> intersections)
     {
         Vector3d previousTickDirection = collider.PreviousInWorldCollider.Direction;
         Vector3d previousTickStart = collider.PreviousInWorldCollider.Position;
@@ -126,7 +126,7 @@ public static class CollisionSolvers
 
         return intersections.Count != 0;
     }
-    public static bool CollideWithEntity(this EntitySphereCollider collider, Entity target, CollidersEntityBehavior? entityColliders, out List<EntityWithSphereIntersectionData> intersections)
+    public static bool CollideWithEntity(this EntitySphereCollider collider, Entity target, IEntityCollidersProvider? entityColliders, out List<EntityWithSphereIntersectionData> intersections)
     {
         intersections = [];
 
@@ -134,14 +134,14 @@ public static class CollisionSolvers
 
         return intersections.Count != 0;
     }
-    private static void CollideWithEntity(Entity target, CollidersEntityBehavior? collider, Vector3d head, Vector3d tail, float radius, List<EntityWithCapsuleIntersectionData> intersections, int subdivision, int totalSubdivisions)
+    private static void CollideWithEntity(Entity target, IEntityCollidersProvider? collider, Vector3d head, Vector3d tail, float radius, List<EntityWithCapsuleIntersectionData> intersections, int subdivision, int totalSubdivisions)
     {
         if (collider == null || !collider.HasOBBCollider)
         {
             CuboidAABBCollider AABBCollider = new(target);
             if (AABBCollider.IntersectCapsule(head, tail, radius, out Vector3d intersection))
             {
-                intersections.Add(new(null, intersection, (intersection - tail).Length, subdivision, totalSubdivisions));
+                intersections.Add(new(-1, intersection, (intersection - tail).Length, subdivision, totalSubdivisions));
             }
 
             return;
@@ -152,15 +152,15 @@ public static class CollisionSolvers
             return;
         }
 
-        foreach (ShapeElementCollider shapeElementCollider in collider.Colliders)
+        foreach (ShapeElementInWorldCollider shapeElementCollider in collider.Colliders)
         {
             if (shapeElementCollider.Collide(head, tail, radius, out _, out Vector3d intersection, out _))
             {
-                intersections.Add(new(shapeElementCollider, intersection, (intersection - tail).Length, subdivision, totalSubdivisions));
+                intersections.Add(new(shapeElementCollider.ColliderId, intersection, (intersection - tail).Length, subdivision, totalSubdivisions));
             }
         }
     }
-    private static void CollideWithEntity(Entity target, CollidersEntityBehavior? collider, Vector3d head, Vector3d tail, float radius, List<EntityWithSphereIntersectionData> intersections)
+    private static void CollideWithEntity(Entity target, IEntityCollidersProvider? collider, Vector3d head, Vector3d tail, float radius, List<EntityWithSphereIntersectionData> intersections)
     {
         if (collider == null || !collider.HasOBBCollider)
         {
@@ -170,7 +170,7 @@ public static class CollisionSolvers
                 Vector3d segmentPoint = intersection - tail;
                 double parameter = GameMath.Clamp(segmentPoint.Length / (head - tail).Length, 0, 1);
 
-                intersections.Add(new(null, intersection, parameter));
+                intersections.Add(new(-1, intersection, parameter));
             }
 
             return;
@@ -185,13 +185,13 @@ public static class CollisionSolvers
         Vector3d extendedHead = head + (head - tail).Normalized() * maxEntitySize;
         double colliderLength = (head - tail).Length;
 
-        foreach (ShapeElementCollider shapeElementCollider in collider.Colliders)
+        foreach (ShapeElementInWorldCollider shapeElementCollider in collider.Colliders)
         {
             if (shapeElementCollider.Collide(extendedHead, tail, radius, out double currentDistance, out Vector3d currentIntersection, out Vector3d segmentClosestPoint))
             {
                 double positionOnCollider = colliderLength < double.Epsilon * 2 ? 0 : (currentIntersection - tail).Length / colliderLength;
 
-                intersections.Add(new(shapeElementCollider, currentIntersection, positionOnCollider));
+                intersections.Add(new(shapeElementCollider.ColliderId, currentIntersection, positionOnCollider));
             }
         }
     }

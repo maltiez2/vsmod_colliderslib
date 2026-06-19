@@ -7,7 +7,13 @@ namespace CollidersLib;
 
 public class CollidersConfig
 {
+    /// <summary>
+    /// Collier type to shape element names
+    /// </summary>
     public Dictionary<string, string[]> Elements { get; set; } = [];
+    /// <summary>
+    /// Collider type to collider color in hexidecimal
+    /// </summary>
     public Dictionary<string, string> Colors { get; set; } = [];
 }
 
@@ -18,7 +24,6 @@ public interface IEntityCollidersProvider
     ImmutableArray<ShapeElementInWorldCollider> Colliders { get; }
     ImmutableDictionary<int, string> ColliderTypeById { get; }
     ImmutableDictionary<string, Color4> ColorByType { get; }
-    void Reconfigure();
 }
 
 public interface IEntityColliderReceiver
@@ -28,6 +33,11 @@ public interface IEntityColliderReceiver
     ImmutableArray<ShapeElementProtoCollider> ProtoColliders { get; }
     ClientAnimator? Animator { get; }
     EntityShapeRenderer? Renderer { get; }
+}
+
+public interface ICollidersConfigProcessor
+{
+    void Reconfigure();
 }
 
 public interface IColliderConfigsProvider

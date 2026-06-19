@@ -1,4 +1,5 @@
 ﻿using OverhaulLib.Utils;
+using System.Collections.Immutable;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 
@@ -6,6 +7,9 @@ namespace CollidersLib;
 
 public sealed class EntityCollidersOffthreadUpdater : ModSystem
 {
+    public ObjectCache<string, ImmutableArray<ShapeElementProtoCollider>>? ProtoCollidersByShape { get; private set; }
+    
+    
     public override bool ShouldLoad(EnumAppSide forSide) => forSide == EnumAppSide.Client;
 
     public override void StartClientSide(ICoreClientAPI api)
@@ -15,6 +19,8 @@ public sealed class EntityCollidersOffthreadUpdater : ModSystem
         _workerThread = TyronThreadPool.CreateDedicatedThread(() => UpdaterLoop(api), "EntityCollidersOffthreadUpdater");
 
         _updaterTickListener = api.World.RegisterGameTickListener(ScheduleUpdate, _updateTimeMillisec);
+
+        ProtoCollidersByShape = new(api, "EntityCollidersOffthreadUpdater.ProtoCollidersByShape");
     }
 
     public override void Dispose()
@@ -24,6 +30,7 @@ public sealed class EntityCollidersOffthreadUpdater : ModSystem
         _canUpdate.Set();
         _workerThread?.Join();
         _workerThread = null;
+        ProtoCollidersByShape?.Dispose();
         _api = null;
     }
 
