@@ -35,10 +35,10 @@ public sealed class EntityCollidersWireframeRenderer : IRenderer
     {
         if (!RenderColliders) return;
         if (_shader == null) return;
-        
+
         EntityPlayer? localPlayer = _api.World.Player?.Entity;
         if (localPlayer == null) return;
-        
+
         _cameraOrigin = new Vector3d(localPlayer.CameraPos.X, localPlayer.CameraPos.Y, localPlayer.CameraPos.Z);
         _vertexCount = 0;
         foreach (Entity entity in _api.World.GetEntitiesAround(_cameraOrigin.ToVanillaRef(), MaxEntityDistance, MaxEntityDistance, entity => entity.IsRendered && entity.Alive))
@@ -51,12 +51,12 @@ public sealed class EntityCollidersWireframeRenderer : IRenderer
             bool isLocalPlayer = entity.EntityId == localPlayer.EntityId;
             bool firstPerson = _api.World.Player?.CameraMode == EnumCameraMode.FirstPerson;
             if (isLocalPlayer && firstPerson) continue;
-            
+
             BuildCollidersForEntity(behavior);
         }
-        
+
         if (_vertexCount == 0) return;
-        
+
         UploadAndDraw();
     }
 
@@ -100,26 +100,27 @@ public sealed class EntityCollidersWireframeRenderer : IRenderer
         public float X = x;
         public float Y = y;
         public float Z = z;
-        
+
         public byte R = r;
         public byte G = g;
         public byte B = b;
         public byte A = a;
-        
+
         public int RenderFlags = 0;
     }
 
     private void BuildCollidersForEntity(CollidersEntityBehavior behavior)
     {
-        foreach (ShapeElementCollider collider in behavior.Colliders)
+        foreach (ShapeElementInWorldCollider collider in behavior.Colliders)
         {
             if (_vertexCount + _verticesPerBox > _maxVertices) return;
-            (byte R, byte G, byte B, byte A) color = GetColor(collider);
-            BuildBox(collider.InworldVertices, color);
+            string colliderType = behavior.ColliderTypeById[collider.ColliderId];
+            (byte R, byte G, byte B, byte A) edgeColor = GetColor(behavior.ColorByType[colliderType]);
+            BuildBox(collider, edgeColor);
         }
     }
 
-    private void BuildBox(Vector4d[] vertices, (byte R, byte G, byte B, byte A) color)
+    private void BuildBox(ShapeElementInWorldCollider vertices, (byte R, byte G, byte B, byte A) color)
     {
         foreach ((int a, int b) in _boxEdges)
         {
@@ -201,8 +202,8 @@ void main(){outColor=color;outGlow=vec4(0.0,0.0,0.0,color.a);}";
         return success;
     }
 
-    private static (byte R, byte G, byte B, byte A) GetColor(ShapeElementCollider collider)
+    private static (byte R, byte G, byte B, byte A) GetColor(Color4 color)
     {
-        return ((byte)(255 * collider.Color.R), (byte)(255 * collider.Color.G), (byte)(255 * collider.Color.B), (byte)(255 * collider.Color.A));
+        return ((byte)(255 * color.R), (byte)(255 * color.G), (byte)(255 * color.B), (byte)(255 * color.A));
     }
 }

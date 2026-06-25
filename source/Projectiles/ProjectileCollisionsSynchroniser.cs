@@ -45,7 +45,7 @@ public abstract class ProjectileCollisionsSynchroniser
     [ProtoContract(ImplicitFields = ImplicitFields.AllPublic)]
     public struct ProjectileEntityCollisionPacketData
     {
-        public string ColliderElementName { get; set; }
+        public int EntityColliderId { get; set; }
         public double IntersectionPointX { get; set; }
         public double IntersectionPointY { get; set; }
         public double IntersectionPointZ { get; set; }
@@ -198,13 +198,7 @@ public sealed class ProjectileCollisionsSynchroniserServer : ProjectileCollision
 
     private static EntityWithSphereIntersectionData GenerateEntityCollisionData(ProjectileEntityCollisionPacketData collision, CollidersEntityBehavior? targetColliders)
     {
-        ShapeElementCollider? collider = null;
-        if (targetColliders != null)
-        {
-            collider = targetColliders.Colliders.Find(element => element.ShapeElementName == collision.ColliderElementName);
-        }
-
-        return new(collider, new(collision.IntersectionPointX, collision.IntersectionPointY, collision.IntersectionPointZ), collision.PositionInTime);
+        return new(collision.EntityColliderId, new(collision.IntersectionPointX, collision.IntersectionPointY, collision.IntersectionPointZ), collision.PositionInTime);
     }
 
     private static TerrainWithShpereIntersectionData GenerateTerrainCollisionData(ICoreAPI api, ProjectileTerrainCollisionPacketData collision)
@@ -293,7 +287,7 @@ public sealed class ProjectileCollisionsSynchroniserClient : ProjectileCollision
     {
         return new()
         {
-            ColliderElementName = collision.EntityCollider?.ShapeElementName ?? "",
+            EntityColliderId = collision.EntityColliderId,
             IntersectionPointX = collision.IntersectionPoint.X,
             IntersectionPointY = collision.IntersectionPoint.Y,
             IntersectionPointZ = collision.IntersectionPoint.Z,

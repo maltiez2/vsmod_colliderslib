@@ -117,10 +117,14 @@ public readonly struct ShapeElementInWorldCollider
 
         int baseIndex = 16 * jointId;
         if (baseIndex + 16 > transformationMatrices.Length)
+        {
             return result;
+        }
 
         for (int i = 0; i < 16; i++)
+        {
             result[i] = transformationMatrices[baseIndex + i];
+        }
 
         return result;
     }

@@ -30,7 +30,7 @@ public abstract class ItemCollisionsSynchroniser
 
     public struct ItemEntityCollisionPacketData
     {
-        public string ColliderElementName { get; set; }
+        public int EntityColliderId { get; set; }
         public double IntersectionPointX { get; set; }
         public double IntersectionPointY { get; set; }
         public double IntersectionPointZ { get; set; }
@@ -160,13 +160,7 @@ public sealed class ItemCollisionsSynchroniserServer : ItemCollisionsSynchronise
 
     private static EntityWithCapsuleIntersectionData GenerateEntityCollisionData(ItemEntityCollisionPacketData collision, CollidersEntityBehavior? targetColliders)
     {
-        ShapeElementCollider? collider = null;
-        if (targetColliders != null)
-        {
-            collider = targetColliders.Colliders.Find(element => element.ShapeElementName == collision.ColliderElementName);
-        }
-
-        return new(collider, new(collision.IntersectionPointX, collision.IntersectionPointY, collision.IntersectionPointZ), collision.DistanceFromTail, collision.Subdivision, collision.TotalSubdivisions);
+        return new(collision.EntityColliderId, new(collision.IntersectionPointX, collision.IntersectionPointY, collision.IntersectionPointZ), collision.DistanceFromTail, collision.Subdivision, collision.TotalSubdivisions);
     }
 
     private static TerrainWithCapsuleIntersectionData GenerateTerrainCollisionData(ICoreAPI api, ItemTerrainCollisionPacketData collision)
@@ -272,7 +266,7 @@ public sealed class ItemCollisionsSynchroniserClient : ItemCollisionsSynchronise
     {
         return new()
         {
-            ColliderElementName = collision.EntityCollider?.ShapeElementName ?? "",
+            EntityColliderId = collision.EntityColliderId,
             IntersectionPointX = collision.IntersectionPoint.X,
             IntersectionPointY = collision.IntersectionPoint.Y,
             IntersectionPointZ = collision.IntersectionPoint.Z,
