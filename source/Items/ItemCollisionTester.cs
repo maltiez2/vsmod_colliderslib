@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using Vintagestory.API.Common;
+﻿using Vintagestory.API.Common;
 
 namespace CollidersLib.Items;
 
@@ -25,9 +24,9 @@ public sealed class ItemCollisionTester
         _collidersBehavior.ResetColliders(attacker, weaponSlot);
     }
 
-    public List<SingleItemCollisionData> TryCollide(EntityPlayer player, ItemSlot itemSlot, out bool stop)
+    public List<SingleItemCollisionData> TryCollide(EntityPlayer player, ItemSlot itemSlot, out bool stop, TimeSpan deltaTime)
     {
-        List<SingleItemCollisionData> collisionsSorted = _collidersBehavior.CheckForCollisionsInOrder(player, itemSlot, CollidersInOrderFromClosestToFurthest, IgnoreTerrainBehindAttacker);
+        List<SingleItemCollisionData> collisionsSorted = _collidersBehavior.CheckForCollisionsInOrder(player, itemSlot, deltaTime, CollidersInOrderFromClosestToFurthest, IgnoreTerrainBehindAttacker);
 
         List<SingleItemCollisionData> collisionsValidated = ValidateCollisions(collisionsSorted, out stop);
 

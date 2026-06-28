@@ -22,7 +22,7 @@ public class ProjectileCollisionTester
     public event Action<Dictionary<Entity, EntityWithSphereIntersectionData[]>, List<TerrainWithShpereIntersectionData>>? OnCollision;
 
 
-    public void OnGameTick(ICoreClientAPI api, Vector3d position, bool reset = false)
+    public void OnGameTick(ICoreClientAPI api, Vector3d position, TimeSpan deltaTime, bool reset = false)
     {
         UpdateCollider(position, reset);
 
@@ -38,7 +38,7 @@ public class ProjectileCollisionTester
             }
             
             CollidersEntityBehavior? targetColliders = target.GetBehavior<CollidersEntityBehavior>();
-            if (Collider.CollideWithEntity(target, targetColliders, out List<EntityWithSphereIntersectionData> entityCollisions))
+            if (Collider.CollideWithEntity(target, targetColliders, out List<EntityWithSphereIntersectionData> entityCollisions, deltaTime))
             {
                 entitiesCollisions.Add(target, entityCollisions.ToArray());
             }

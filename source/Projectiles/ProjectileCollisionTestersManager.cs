@@ -120,11 +120,11 @@ public sealed class ProjectileCollisionTestersManagerClient
     {
         foreach (long projectileId in _testers.Keys)
         {
-            ProcessProjectileUpdate(projectileId);
+            ProcessProjectileUpdate(projectileId, TimeSpan.FromSeconds(deltaTime));
         }
     }
 
-    private void ProcessProjectileUpdate(long projectileId)
+    private void ProcessProjectileUpdate(long projectileId, TimeSpan deltaTime)
     {
         ProjectileCollisionTester tester = _testers[projectileId];
         Queue<CollisionUpdateData> queue = _updateQueues[projectileId];
@@ -138,7 +138,7 @@ public sealed class ProjectileCollisionTestersManagerClient
                 continue;
             }
 
-            tester.OnGameTick(_api, updateData.Position, updateData.Reset);
+            tester.OnGameTick(_api, updateData.Position, deltaTime, updateData.Reset);
             lastProcessedTimeStamp = updateData.TimeStamp;
             _lastProcessedTimeStamps[projectileId] = lastProcessedTimeStamp;
         }

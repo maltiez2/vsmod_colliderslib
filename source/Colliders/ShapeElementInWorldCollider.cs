@@ -64,6 +64,42 @@ public readonly struct ShapeElementInWorldCollider
         return distance <= radius;
     }
 
+    public Vector3d GetSurfaceNormal(Vector3d worldPoint)
+    {
+        Vector3d localPoint = worldPoint - Center;
+
+        double halfSizeX = HalfExtentX.Length;
+        double halfSizeY = HalfExtentY.Length;
+        double halfSizeZ = HalfExtentZ.Length;
+
+        Vector3d axisX = halfSizeX > 1e-10 ? (Vector3d)HalfExtentX / halfSizeX : Vector3d.UnitX;
+        Vector3d axisY = halfSizeY > 1e-10 ? (Vector3d)HalfExtentY / halfSizeY : Vector3d.UnitY;
+        Vector3d axisZ = halfSizeZ > 1e-10 ? (Vector3d)HalfExtentZ / halfSizeZ : Vector3d.UnitZ;
+
+        double projectionX = Vector3d.Dot(localPoint, axisX);
+        double projectionXY = Vector3d.Dot(localPoint, axisY);
+        double projectionXZ = Vector3d.Dot(localPoint, axisZ);
+
+        // positive is outside that face
+        double distPosX = halfSizeX - projectionX;
+        double distNegX = halfSizeX + projectionX;
+        double distPosY = halfSizeY - projectionXY;
+        double distNegY = halfSizeY + projectionXY;
+        double distPosZ = halfSizeZ - projectionXZ;
+        double distNegZ = halfSizeZ + projectionXZ;
+
+        double minDist = distPosX;
+        Vector3d normal = axisX;
+
+        if (distNegX < minDist) { minDist = distNegX; normal = -axisX; }
+        if (distPosY < minDist) { minDist = distPosY; normal = axisY; }
+        if (distNegY < minDist) { minDist = distNegY; normal = -axisY; }
+        if (distPosZ < minDist) { minDist = distPosZ; normal = axisZ; }
+        if (distNegZ < minDist) { normal = -axisZ; }
+
+        return normal;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector3d TransformPosition(Vector3 v, double[] jointMatrix, float[] modelMat, Vector3d cameraPos)
     {

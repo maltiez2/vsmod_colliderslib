@@ -9,14 +9,19 @@ public readonly struct EntityWithCapsuleIntersectionData
 {
     public readonly int EntityColliderId;
     public readonly Vector3d IntersectionPoint;
+    /// <summary>
+    /// [strike, cut, slip]
+    /// </summary>
+    public readonly Vector3d ImpactVelocity;
     public readonly double DistanceFromTail;
     public readonly int Subdivision;
     public readonly int TotalSubdivisions;
 
-    public EntityWithCapsuleIntersectionData(int entityColliderId, Vector3d intersectionPoint, double distanceFromTail, int subdivision, int totalSubdivisions)
+    public EntityWithCapsuleIntersectionData(int entityColliderId, Vector3d intersectionPoint, Vector3d impactVelocity, double distanceFromTail, int subdivision, int totalSubdivisions)
     {
         EntityColliderId = entityColliderId;
         IntersectionPoint = intersectionPoint;
+        ImpactVelocity = impactVelocity;
         DistanceFromTail = distanceFromTail;
         Subdivision = subdivision;
         TotalSubdivisions = totalSubdivisions;
@@ -27,9 +32,10 @@ public readonly struct EntityWithSphereIntersectionData
 {
     public readonly int EntityColliderId;
     public readonly Vector3d IntersectionPoint;
+    public readonly Vector3d ImpactVelocity;
     public readonly double PositionInTime;
 
-    public EntityWithSphereIntersectionData(int entityColliderId, Vector3d intersectionPoint, double positionInTime)
+    public EntityWithSphereIntersectionData(int entityColliderId, Vector3d intersectionPoint, Vector3d impactVelocity, double positionInTime)
     {
         EntityColliderId = entityColliderId;
         IntersectionPoint = intersectionPoint;
@@ -83,7 +89,7 @@ public readonly struct TerrainWithShpereIntersectionData
 
 public static class CollisionSolvers
 {
-    public static bool CollideWithEntity(this ItemCapsuleCollider collider, Entity target, IEntityCollidersProvider? entityColliders, out List<EntityWithCapsuleIntersectionData> intersections)
+    public static bool CollideWithEntity(this ItemCapsuleCollider collider, Entity target, IEntityCollidersProvider? entityColliders, out List<EntityWithCapsuleIntersectionData> intersections, TimeSpan deltaTime)
     {
         Vector3d previousTickDirection = collider.PreviousInWorldCollider.Direction;
         Vector3d previousTickStart = collider.PreviousInWorldCollider.Position;
@@ -93,6 +99,8 @@ public static class CollisionSolvers
         Vector3d startTail = previousTickStart + previousTickDirection;
         Vector3d directionHead = thisTickStart - startHead;
         Vector3d directionTail = thisTickStart + thisTickDirection - startTail;
+        Vector3d headVelocity = (thisTickStart - previousTickStart) / deltaTime.TotalSeconds;
+        Vector3d tailVelocity = ((thisTickStart + thisTickDirection) - (previousTickStart + previousTickDirection)) + previousTickDirection;
         float radius = collider.Radius;
         intersections = [];
 
@@ -105,7 +113,7 @@ public static class CollisionSolvers
                 var pos = (thisTickStart + i * 0.1f * thisTickDirection).ToVanillaRef();
                 target.Api.World.SpawnParticles(1, ColorUtil.ColorFromRgba(255, 125, 125, 255), pos, pos, new(), new(), 1, 0, 1, EnumParticleModel.Cube);
             }*/
-            CollideWithEntity(target, entityColliders, thisTickStart + thisTickDirection, thisTickStart, radius, intersections, 0, 1);
+            CapsuleCollideWithEntity(target, entityColliders, thisTickStart + thisTickDirection, thisTickStart, radius, intersections, 0, 1, headVelocity, tailVelocity);
             return intersections.Count != 0;
         }
 
@@ -121,27 +129,32 @@ public static class CollisionSolvers
                 target.Api.World.SpawnParticles(1, ColorUtil.ColorFromRgba(255, 125, 125, 255), pos, pos, new(), new(), 1, 0, 1, EnumParticleModel.Cube);
             }*/
 
-            CollideWithEntity(target, entityColliders, head, tail, radius, intersections, subdivision, subdivisions);
+            CapsuleCollideWithEntity(target, entityColliders, head, tail, radius, intersections, subdivision, subdivisions, headVelocity, tailVelocity);
         }
 
         return intersections.Count != 0;
     }
-    public static bool CollideWithEntity(this EntitySphereCollider collider, Entity target, IEntityCollidersProvider? entityColliders, out List<EntityWithSphereIntersectionData> intersections)
+    public static bool CollideWithEntity(this EntitySphereCollider collider, Entity target, IEntityCollidersProvider? entityColliders, out List<EntityWithSphereIntersectionData> intersections, TimeSpan deltaTime)
     {
         intersections = [];
 
-        CollideWithEntity(target, entityColliders, collider.Position, collider.PreviousPosition, collider.Radius, intersections);
+        SphereCollideWithEntity(target, entityColliders, collider.Position, collider.PreviousPosition, collider.Radius, intersections, deltaTime);
 
         return intersections.Count != 0;
     }
-    private static void CollideWithEntity(Entity target, IEntityCollidersProvider? collider, Vector3d head, Vector3d tail, float radius, List<EntityWithCapsuleIntersectionData> intersections, int subdivision, int totalSubdivisions)
+    private static void CapsuleCollideWithEntity(Entity target, IEntityCollidersProvider? collider, Vector3d head, Vector3d tail, float radius, List<EntityWithCapsuleIntersectionData> intersections, int subdivision, int totalSubdivisions, Vector3d headVelocity, Vector3d tailVelocity)
     {
         if (collider == null || !collider.HasOBBCollider)
         {
             CuboidAABBCollider AABBCollider = new(target);
             if (AABBCollider.IntersectCapsule(head, tail, radius, out Vector3d intersection))
             {
-                intersections.Add(new(-1, intersection, (intersection - tail).Length, subdivision, totalSubdivisions));
+                AABBCollider.GetFacing(-headVelocity, out Vector3d surfaceNormal);
+                double positionOnCollider = (intersection - tail).Length / (head - tail).Length;
+                Vector3d relativeVelocity = headVelocity * positionOnCollider + tailVelocity * (1 - positionOnCollider);
+                Vector3d impactVelocity = GetStrikeCutSlip(relativeVelocity, surfaceNormal, head - tail);
+
+                intersections.Add(new(-1, intersection, impactVelocity, (intersection - tail).Length, subdivision, totalSubdivisions));
             }
 
             return;
@@ -156,12 +169,19 @@ public static class CollisionSolvers
         {
             if (shapeElementCollider.Collide(head, tail, radius, out _, out Vector3d intersection, out _))
             {
-                intersections.Add(new(shapeElementCollider.ColliderId, intersection, (intersection - tail).Length, subdivision, totalSubdivisions));
+                Vector3d surfaceNormal = shapeElementCollider.GetSurfaceNormal(intersection);
+                double positionOnCollider = (intersection - tail).Length / (head - tail).Length;
+                Vector3d relativeVelocity = headVelocity * positionOnCollider + tailVelocity * (1 - positionOnCollider);
+                Vector3d impactVelocity = GetStrikeCutSlip(relativeVelocity, surfaceNormal, head - tail);
+
+                intersections.Add(new(shapeElementCollider.ColliderId, intersection, impactVelocity, (intersection - tail).Length, subdivision, totalSubdivisions));
             }
         }
     }
-    private static void CollideWithEntity(Entity target, IEntityCollidersProvider? collider, Vector3d head, Vector3d tail, float radius, List<EntityWithSphereIntersectionData> intersections)
+    private static void SphereCollideWithEntity(Entity target, IEntityCollidersProvider? collider, Vector3d head, Vector3d tail, float radius, List<EntityWithSphereIntersectionData> intersections, TimeSpan deltaTime)
     {
+        Vector3d realtiveVelocity = (head - tail) / deltaTime.TotalSeconds;
+
         if (collider == null || !collider.HasOBBCollider)
         {
             CuboidAABBCollider AABBCollider = new(target);
@@ -170,7 +190,10 @@ public static class CollisionSolvers
                 Vector3d segmentPoint = intersection - tail;
                 double parameter = GameMath.Clamp(segmentPoint.Length / (head - tail).Length, 0, 1);
 
-                intersections.Add(new(-1, intersection, parameter));
+                AABBCollider.GetFacing(-realtiveVelocity, out Vector3d surfaceNormal);
+                Vector3d impactVelocity = GetStrikeCutSlip(realtiveVelocity, surfaceNormal, Vector3d.Zero);
+
+                intersections.Add(new(-1, intersection, impactVelocity, parameter));
             }
 
             return;
@@ -191,7 +214,10 @@ public static class CollisionSolvers
             {
                 double positionOnCollider = colliderLength < double.Epsilon * 2 ? 0 : (currentIntersection - tail).Length / colliderLength;
 
-                intersections.Add(new(shapeElementCollider.ColliderId, currentIntersection, positionOnCollider));
+                Vector3d surfaceNormal = shapeElementCollider.GetSurfaceNormal(currentIntersection);
+                Vector3d impactVelocity = GetStrikeCutSlip(realtiveVelocity, surfaceNormal, Vector3d.Zero);
+
+                intersections.Add(new(shapeElementCollider.ColliderId, currentIntersection, impactVelocity, positionOnCollider));
             }
         }
     }
@@ -345,6 +371,147 @@ public static class CollisionSolvers
                     positionOnCollider));
             }
         }
+    }
+
+
+    /// <summary>
+    /// Decomposes relative velocity into strike/cut/slip components given a surface normal
+    /// and the weapon's blade axis direction.
+    ///
+    /// Coordinate frame:
+    ///   Strike axis = surface normal          (perpendicular to surface, into it)
+    ///   Cut axis    = blade axis ⊥ normal     (along blade edge on surface plane)
+    ///   Slip axis   = normal × cut axis       (across blade flat on surface plane)
+    ///
+    ///        normal (strike)
+    ///           ↑
+    ///           │        ← slip axis (across blade flat)
+    ///           │      ↗
+    ///    ───────┼──────────── cut axis (along blade edge)
+    ///           │  surface
+    ///
+    /// </summary>
+    /// <param name="relativeVelocity">
+    ///     Velocity of weapon relative to target surface (weaponVelocity - entityVelocity).
+    /// </param>
+    /// <param name="surfaceNormal">
+    ///     Outward unit normal of the struck surface face.
+    ///     Does not need to be pre-normalized; will be normalized internally.
+    /// </param>
+    /// <param name="bladeAxis">
+    ///     Direction along the weapon's cutting edge in world space (capsule axis direction).
+    ///     Does not need to be pre-normalized; will be normalized internally.
+    ///     Pass Vector3d.Zero for blunt/sphere weapons — cut and slip will be split
+    ///     from tangential speed using the velocity direction instead.
+    /// </param>
+    /// <returns>
+    ///     Decomposed speed components. All values are non-negative magnitudes.
+    ///     Signs are preserved internally but exposed as absolute speeds since
+    ///     direction is encoded in the axis definitions above.
+    /// </returns>
+    public static Vector3d GetStrikeCutSlip(Vector3d relativeVelocity, Vector3d surfaceNormal, Vector3d bladeAxis)
+    {
+        // -------------------------------------------------------------------------
+        // 1. Normalize strike axis
+        // -------------------------------------------------------------------------
+        double normalLen = surfaceNormal.Length;
+
+        // Degenerate normal — cannot decompose meaningfully
+        if (normalLen < 1e-10)
+        {
+            return new(relativeVelocity.Length, 0, 0);
+        }
+
+        Vector3d strikeAxis = surfaceNormal / normalLen;
+
+        // -------------------------------------------------------------------------
+        // 2. Strike speed — signed projection onto surface normal
+        //    Negative value means moving INTO the surface (actual impact).
+        //    We store the magnitude; caller can check sign via dot product if needed.
+        // -------------------------------------------------------------------------
+        double strikeSpeed = Vector3d.Dot(relativeVelocity, strikeAxis);
+
+        // -------------------------------------------------------------------------
+        // 3. Tangential velocity — component lying on the surface plane
+        //    This is what drives cut and slip.
+        // -------------------------------------------------------------------------
+        Vector3d tangentialVelocity = relativeVelocity - strikeSpeed * strikeAxis;
+
+        // -------------------------------------------------------------------------
+        // 4. Build cut axis — blade axis projected onto surface plane
+        //    If blade axis is parallel to normal (e.g. stabbing straight in),
+        //    or zero (blunt weapon), fall back to tangential velocity direction.
+        // -------------------------------------------------------------------------
+        double bladeLen = bladeAxis.Length;
+        bool hasBlade = bladeLen > 1e-10;
+
+        Vector3d cutAxis;
+
+        if (hasBlade)
+        {
+            // Remove normal component from blade axis to get surface-plane projection
+            Vector3d normalizedBlade = bladeAxis / bladeLen;
+            Vector3d projectedBlade = normalizedBlade - Vector3d.Dot(normalizedBlade, strikeAxis) * strikeAxis;
+            double projectedLen = projectedBlade.Length;
+
+            if (projectedLen > 1e-10)
+            {
+                // Normal case: blade has a meaningful surface-plane component
+                cutAxis = projectedBlade / projectedLen;
+            }
+            else
+            {
+                // Edge case: blade is perpendicular to surface (pure stab).
+                // No preferred cut direction on the surface plane.
+                // Use tangential velocity direction if available, else arbitrary.
+                double tangentialLen = tangentialVelocity.Length;
+                cutAxis = tangentialLen > 1e-10
+                    ? tangentialVelocity / tangentialLen
+                    : ComputeArbitraryPerpendicular(strikeAxis);
+            }
+        }
+        else
+        {
+            // Blunt / sphere weapon — no blade axis.
+            // Use tangential velocity direction as the primary tangential axis.
+            double tangentialLen = tangentialVelocity.Length;
+            cutAxis = tangentialLen > 1e-10
+                ? tangentialVelocity / tangentialLen
+                : ComputeArbitraryPerpendicular(strikeAxis);
+        }
+
+        // -------------------------------------------------------------------------
+        // 5. Slip axis — completes the right-handed orthonormal frame
+        //    slip = strike × cut
+        //    Lies on surface plane, perpendicular to blade edge.
+        // -------------------------------------------------------------------------
+        Vector3d slipAxis = Vector3d.Cross(strikeAxis, cutAxis);
+
+        // -------------------------------------------------------------------------
+        // 6. Project tangential velocity onto cut and slip axes
+        // -------------------------------------------------------------------------
+        double cutSpeed = Vector3d.Dot(tangentialVelocity, cutAxis);
+        double slipSpeed = Vector3d.Dot(tangentialVelocity, slipAxis);
+
+        return new(Math.Abs(strikeSpeed), Math.Abs(cutSpeed), Math.Abs(slipSpeed));
+    }
+
+    /// <summary>
+    /// Builds an arbitrary unit vector perpendicular to <paramref name="v"/>.
+    /// Used as a fallback when no preferred tangential direction exists.
+    /// Chooses the cross product axis that avoids near-parallel vectors.
+    /// </summary>
+    private static Vector3d ComputeArbitraryPerpendicular(Vector3d v)
+    {
+        // Pick the world axis least aligned with v to avoid degenerate cross product
+        Vector3d candidate = Math.Abs(v.X) <= Math.Abs(v.Y) && Math.Abs(v.X) <= Math.Abs(v.Z)
+            ? Vector3d.UnitX
+            : Math.Abs(v.Y) <= Math.Abs(v.Z)
+                ? Vector3d.UnitY
+                : Vector3d.UnitZ;
+
+        Vector3d perp = Vector3d.Cross(v, candidate);
+        return perp / perp.Length;
     }
 
 

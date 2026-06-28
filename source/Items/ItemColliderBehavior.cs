@@ -126,7 +126,7 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
         }
     }
 
-    public virtual List<ColliderItemCollisionData> CheckForCollisions(EntityPlayer player, ItemSlot inSlot, bool resetColliders = false, int[]? collidersToCheck = null)
+    public virtual List<ColliderItemCollisionData> CheckForCollisions(EntityPlayer player, ItemSlot inSlot, TimeSpan deltaTime, bool resetColliders = false, int[]? collidersToCheck = null)
     {
         List<ColliderItemCollisionData> collisions = [];
 
@@ -159,14 +159,14 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
             }
         }
 
-        TryCollide(player, inSlot, api, mainHand, out collisions, collidersToCheck);
+        TryCollide(player, inSlot, api, mainHand, out collisions, collidersToCheck, deltaTime);
 
         return collisions;
     }
 
-    public virtual List<SingleItemCollisionData> CheckForCollisionsInOrder(EntityPlayer player, ItemSlot inSlot, int[] collidersInOrder, bool ingoreTerrainBehindAttacker, bool resetColliders = false)
+    public virtual List<SingleItemCollisionData> CheckForCollisionsInOrder(EntityPlayer player, ItemSlot inSlot, TimeSpan deltaTime, int[] collidersInOrder, bool ingoreTerrainBehindAttacker, bool resetColliders = false)
     {
-        List<ColliderItemCollisionData> collisions = CheckForCollisions(player, inSlot, resetColliders);
+        List<ColliderItemCollisionData> collisions = CheckForCollisions(player, inSlot, deltaTime, resetColliders);
 
         return SortCollisions(player, collisions, collidersInOrder, ingoreTerrainBehindAttacker);
     }
@@ -191,7 +191,7 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
     protected readonly Item Item;
 
 
-    protected virtual void TryCollide(EntityPlayer player, ItemSlot inSlot, ICoreClientAPI api, bool mainHand, out List<ColliderItemCollisionData> collisions, int[]? collidersToCheck)
+    protected virtual void TryCollide(EntityPlayer player, ItemSlot inSlot, ICoreClientAPI api, bool mainHand, out List<ColliderItemCollisionData> collisions, int[]? collidersToCheck, TimeSpan deltaTime)
     {
         bool resetColliders = mainHand ? MainHandResetColliderNextTick : OffHandResetColliderNextTick;
 
@@ -210,7 +210,7 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
         }
 
 
-        GatherCollisionData(player, api, out collisions, collidersToCheck);
+        GatherCollisionData(player, api, out collisions, collidersToCheck, deltaTime);
 
         if (collisions.Count > 0)
         {
@@ -223,7 +223,7 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
         }
     }
 
-    protected virtual void GatherCollisionData(EntityPlayer player, ICoreClientAPI api, out List<ColliderItemCollisionData> collisions, int[]? collidersToCheck)
+    protected virtual void GatherCollisionData(EntityPlayer player, ICoreClientAPI api, out List<ColliderItemCollisionData> collisions, int[]? collidersToCheck, TimeSpan deltaTime)
     {
         Entity[] targets = api.World.GetEntitiesAround(player.Pos.XYZ, SearchRadius, SearchRadius);
         Dictionary<Entity, CollidersEntityBehavior?> targetsColliders = targets.ToDictionary(target => target, targets => targets.GetBehavior<CollidersEntityBehavior>());
@@ -241,7 +241,7 @@ public class ItemCollidersBehaviorClient : CollectibleBehavior
             {
                 if (target == player) continue;
                 
-                if (collider.CollideWithEntity(target, targetColliders, out List<EntityWithCapsuleIntersectionData> entityIntersections))
+                if (collider.CollideWithEntity(target, targetColliders, out List<EntityWithCapsuleIntersectionData> entityIntersections, deltaTime))
                 {
                     entityCollisions.Add(target, entityIntersections.ToArray());
                 }
